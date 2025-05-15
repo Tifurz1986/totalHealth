@@ -1,21 +1,22 @@
 package com.miempresa.totalhealth.content
 
 import android.util.Log
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.Date
 
 // Estado para la UI del libro
-sealed class DailyBookUiState { // Mantenemos el nombre DailyBookUiState por consistencia
+sealed class DailyBookUiState {
     object Loading : DailyBookUiState()
     data class Success(val book: DailyBook) : DailyBookUiState()
     object Error : DailyBookUiState()
-    object Empty : DailyBookUiState()
+    object Empty : DailyBookUiState() // Para cuando no hay libros
 }
 
 // Lista de libros predefinidos.
@@ -36,8 +37,10 @@ private val bookRecommendationsList: List<DailyBook> = listOf(
 
 class DailyBookViewModel : ViewModel() {
 
-    private val _uiState = mutableStateOf<DailyBookUiState>(DailyBookUiState.Loading)
-    val uiState: State<DailyBookUiState> = _uiState
+    // Corrección: Usar MutableStateFlow
+    private val _uiState = MutableStateFlow<DailyBookUiState>(DailyBookUiState.Loading)
+    // Corrección: Exponer como StateFlow inmutable
+    val uiState: StateFlow<DailyBookUiState> = _uiState.asStateFlow()
 
     init {
         loadBookOfTheMonth()
@@ -47,7 +50,7 @@ class DailyBookViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = DailyBookUiState.Loading
             try {
-                delay(350) // Simular carga
+                delay(350) // Simular carga de red/DB
 
                 if (bookRecommendationsList.isEmpty()) {
                     _uiState.value = DailyBookUiState.Empty
@@ -59,21 +62,24 @@ class DailyBookViewModel : ViewModel() {
                 val currentYear = calendar.get(Calendar.YEAR)
                 val currentMonth = calendar.get(Calendar.MONTH) // 0 (Enero) a 11 (Diciembre)
 
-                val yearBase = 2024
-                val seed = (currentYear - yearBase) * 12 + currentMonth
+                // Algoritmo para seleccionar un libro basado en el mes actual
+                val yearBase = 2024 // Un año base para el cálculo del seed
+                val seed = (currentYear - yearBase) * 12 + currentMonth // Un seed único por mes
 
                 val bookIndex = seed % bookRecommendationsList.size
+                // Asegurar que el índice final sea positivo
                 val finalIndex = if (bookIndex < 0) bookIndex + bookRecommendationsList.size else bookIndex
 
 
                 if (finalIndex >= 0 && finalIndex < bookRecommendationsList.size) {
                     val selectedBook = bookRecommendationsList[finalIndex].copy(
-                        id = "book_${currentYear}_${currentMonth + 1}",
-                        featuredAt = Date()
+                        id = "book_${currentYear}_${currentMonth + 1}", // ID único para el libro del mes
+                        featuredAt = Date() // Fecha en que se destaca
                     )
                     _uiState.value = DailyBookUiState.Success(selectedBook)
                     Log.d("DailyBookVM", "Libro del mes cargado (Índice $finalIndex): ${selectedBook.title}")
                 } else {
+                    // Este caso no debería ocurrir si la lógica del índice es correcta y la lista no está vacía
                     Log.e("DailyBookVM", "Índice de libro fuera de rango: $finalIndex. Tamaño lista: ${bookRecommendationsList.size}")
                     _uiState.value = DailyBookUiState.Error
                 }

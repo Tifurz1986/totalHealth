@@ -41,7 +41,6 @@ fun RegisterScreen(
     navController: NavController,
     authViewModel: AuthViewModel = viewModel()
 ) {
-    // Corrección: Usar authAndRoleUiState y renombrar la variable local
     val authState by authViewModel.authAndRoleUiState.collectAsState()
     val email by authViewModel.email
     val password by authViewModel.password
@@ -56,68 +55,38 @@ fun RegisterScreen(
     LaunchedEffect(key1 = authState) {
         Log.d("RegisterScreen", "authState changed: $authState")
         when (val state = authState) {
-            // Corrección: Usar AuthAndRoleUiState.Authenticated para indicar registro exitoso
-            // En el flujo de registro, Authenticated significa que el usuario se creó
-            // y ahora puede proceder a iniciar sesión.
             is AuthAndRoleUiState.Authenticated -> {
-                Log.d("RegisterScreen", "AuthAndRoleUiState.Authenticated (Registro exitoso) detected. Navigating to login.")
-                Toast.makeText(context, "Registro completado. Ahora puedes iniciar sesión.", Toast.LENGTH_LONG).show()
-                authViewModel.clearFields() // Limpiar campos después de un registro exitoso
-                // authViewModel.resetState() // Importante: resetear a Idle ANTES de navegar a login,
-                // para que login no reaccione a un estado Authenticated
-                // que no proviene de un intento de login.
+                Log.d("RegisterScreen", "AuthAndRoleUiState.Authenticated (Registro exitoso) detected.")
+                try {
+                    Toast.makeText(context, "Registro completado. Ahora puedes iniciar sesión.", Toast.LENGTH_LONG).show()
+                    Log.i("RegisterScreen", "SUCCESS TOAST SHOWN for registration.")
+                } catch (e: Exception) {
+                    Log.e("RegisterScreen", "ERROR SHOWING SUCCESS TOAST for registration", e)
+                }
+
+                authViewModel.clearFields()
+                authViewModel.resetState() // CRUCIAL: Reset state to Idle BEFORE navigating to login
+                Log.d("RegisterScreen", "State reset to Idle. Navigating to login screen.")
+
                 navController.navigate("login") {
-                    popUpTo("register") { inclusive = true } // Limpia el backstack hasta "register"
+                    popUpTo("register") { inclusive = true }
                     launchSingleTop = true
                 }
-                // El resetState se hace en AuthViewModel después de un registro exitoso en algunos casos,
-                // o se puede manejar aquí para asegurar que la pantalla de login no lo interprete mal.
-                // Es crucial que al llegar a LoginScreen, el estado sea Idle o uno que LoginScreen espere al inicio.
-                // AuthViewModel.registerUser() ya pone Authenticated.
-                // Si navegas y el AuthViewModel es el mismo (compartido), LoginScreen vería Authenticated.
-                // Por eso, clearFields y resetState antes de navegar es más seguro.
-                // La lógica actual en AuthViewModel es:
-                // _authAndRoleUiState.value = AuthAndRoleUiState.Authenticated(firebaseUser, UserRole.USER)
-                // clearFields()
-                // Así que el resetState aquí asegura que si el usuario vuelve a Register, esté Idle.
-                // Y LoginScreen comenzará con el estado que tenga el ViewModel en ese momento.
-                // La navegación con popUpTo(login) { inclusive = true} podría ser mejor si registro es el inicio de ese flujo.
-                // Si popUpTo("register") es correcto, entonces LoginScreen no debería reaccionar a Authenticated inmediatamente.
-                // authViewModel.resetState() // <-- Es buena idea llamarlo después de clearFields() y ANTES de navegar.
-                // Esto previene que si el ViewModel es compartido y no se destruye,
-                // la siguiente pantalla (Login) reaccione a un estado Authenticated
-                // no intencionado por ella.
-                // Re-evaluando: AuthViewModel.registerUser() ya llama a clearFields().
-                // El estado Authenticated es el resultado del registro. Es correcto.
-                // El problema podría ser si LoginScreen reacciona a este Authenticated sin un login explícito.
-                // Para RegisterScreen, este es el final exitoso del flujo.
-                // Si queremos que LoginScreen no reaccione, el reset debe ocurrir en el ViewModel
-                // o justo antes de la navegación aquí.
-                // Como LoginScreen ahora tiene su propio LaunchedEffect que reacciona a Authenticated
-                // para navegar a home, es VITAL que el estado NO sea Authenticated cuando
-                // se llega a LoginScreen DESPUÉS de un registro.
-                // Solución: AuthViewModel debería volver a Idle después de un registro exitoso si la navegación es a Login.
-                // O, RegisterScreen fuerza un reset ANTES de navegar.
-                // La llamada a `authViewModel.clearFields()` y `authViewModel.resetState()`
-                // en el TextButton de "Ya tienes cuenta?" es un buen ejemplo.
-                // Hagamos lo mismo aquí para consistencia.
-                authViewModel.resetState() // Asegura que cuando se navegue a login, el estado no sea "Authenticated" del registro.
-
-                Log.d("RegisterScreen", "Navigation to login called. State reset to Idle.")
             }
-            // Corrección: Usar AuthAndRoleUiState.Error
             is AuthAndRoleUiState.Error -> {
-                Log.d("RegisterScreen", "AuthAndRoleUiState.Error: ${state.message}")
-                Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
-                authViewModel.resetState() // Vuelve a Idle para permitir nuevos intentos
+                Log.e("RegisterScreen", "AuthAndRoleUiState.Error: ${state.message}")
+                try {
+                    Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
+                    Log.i("RegisterScreen", "ERROR TOAST SHOWN: ${state.message}")
+                } catch (e: Exception) {
+                    Log.e("RegisterScreen", "ERROR SHOWING ERROR TOAST", e)
+                }
+                authViewModel.resetState() // Reset state to Idle to allow user to retry or clear error
             }
             is AuthAndRoleUiState.AuthLoading -> {
                 Log.d("RegisterScreen", "State is AuthLoading.")
-                // El CircularProgressIndicator en el botón maneja la UI de carga
             }
             is AuthAndRoleUiState.RoleLoading -> {
-                // Este estado no debería ocurrir durante el registro simple.
-                // Si ocurre, es un estado inesperado aquí.
                 Log.w("RegisterScreen", "Unexpected state: RoleLoading during registration flow.")
             }
             is AuthAndRoleUiState.Idle -> {
@@ -126,6 +95,7 @@ fun RegisterScreen(
         }
     }
 
+    // El resto de la UI de RegisterScreen se mantiene igual...
     Column(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
@@ -204,7 +174,6 @@ fun RegisterScreen(
                                 imeAction = ImeAction.Next
                             ),
                             singleLine = true,
-                            // Corrección: Comprobar estado de carga AuthLoading (RoleLoading no es relevante aquí)
                             enabled = authState !is AuthAndRoleUiState.AuthLoading,
                             shape = RoundedCornerShape(12.dp),
                             colors = OutlinedTextFieldDefaults.colors(
@@ -246,6 +215,8 @@ fun RegisterScreen(
                                     focusManager.clearFocus()
                                     if (email.isNotBlank() && password.isNotBlank()) {
                                         authViewModel.registerUser()
+                                    } else {
+                                        Toast.makeText(context, "Completa todos los campos.", Toast.LENGTH_SHORT).show()
                                     }
                                 }
                             ),
@@ -257,7 +228,6 @@ fun RegisterScreen(
                                 }
                             },
                             singleLine = true,
-                            // Corrección: Comprobar estado de carga AuthLoading
                             enabled = authState !is AuthAndRoleUiState.AuthLoading,
                             shape = RoundedCornerShape(12.dp),
                             colors = OutlinedTextFieldDefaults.colors(
@@ -284,12 +254,15 @@ fun RegisterScreen(
                         Button(
                             onClick = {
                                 focusManager.clearFocus()
-                                authViewModel.registerUser()
+                                if (email.isNotBlank() && password.isNotBlank()) {
+                                    authViewModel.registerUser()
+                                } else {
+                                    Toast.makeText(context, "Completa todos los campos.", Toast.LENGTH_SHORT).show()
+                                }
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp),
-                            // Corrección: Comprobar estado de carga AuthLoading
                             enabled = authState !is AuthAndRoleUiState.AuthLoading,
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
@@ -299,7 +272,6 @@ fun RegisterScreen(
                                 disabledContentColor = Color.White.copy(alpha = 0.7f)
                             )
                         ) {
-                            // Corrección: Mostrar indicador si está en AuthLoading
                             if (authState is AuthAndRoleUiState.AuthLoading) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(24.dp),
@@ -318,13 +290,12 @@ fun RegisterScreen(
                 TextButton(
                     onClick = {
                         authViewModel.clearFields()
-                        authViewModel.resetState() // Vuelve a Idle antes de navegar
+                        authViewModel.resetState()
                         navController.navigate("login") {
                             popUpTo("register") { inclusive = true }
                             launchSingleTop = true
                         }
                     },
-                    // Corrección: Comprobar estado de carga AuthLoading
                     enabled = authState !is AuthAndRoleUiState.AuthLoading
                 ) {
                     Text("¿Ya tienes cuenta? Inicia sesión", color = Color.White.copy(alpha = 0.9f))

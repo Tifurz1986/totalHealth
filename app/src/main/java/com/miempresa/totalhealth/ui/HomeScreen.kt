@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.RestaurantMenu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue // Esencial para la delegación 'by' con State
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,69 +37,48 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.compose.viewModel // Para obtener ViewModels
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.miempresa.totalhealth.R
-import com.miempresa.totalhealth.content.DailyBook
+import com.miempresa.totalhealth.content.DailyBook // Asegúrate que estas clases de datos estén definidas
 import com.miempresa.totalhealth.content.DailyBookUiState
 import com.miempresa.totalhealth.content.DailyBookViewModel
-import com.miempresa.totalhealth.content.WeeklyPhrase // Asegúrate que esta importación es correcta (después de renombrar WeeklyPhrase.kt.kt)
+import com.miempresa.totalhealth.content.WeeklyPhrase // Asegúrate que estas clases de datos estén definidas
 import com.miempresa.totalhealth.content.WeeklyPhraseUiState
 import com.miempresa.totalhealth.content.WeeklyPhraseViewModel
-
-// Corrección: Asegurar la importación de AuthViewModel del paquete auth
-import com.miempresa.totalhealth.auth.AuthViewModel
-// Si AuthViewModel estuviera en un subpaquete de com.miempresa.totalhealth, por ejemplo:
-// import com.miempresa.totalhealth.auth.AuthViewModel // <- Ajusta esto si tu paquete 'auth' está en otra ubicación
+import com.miempresa.totalhealth.auth.AuthViewModel // ViewModel de autenticación
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     navController: NavController,
-    // Corrección: Especificar el tipo AuthViewModel correctamente.
-    // La referencia a 'auth' en el error anterior (línea 41) podría ser por un intento de
-    // authViewModel: auth.AuthViewModel = viewModel(), lo cual es redundante si ya está importado.
     authViewModel: AuthViewModel = viewModel(),
     weeklyPhraseViewModel: WeeklyPhraseViewModel = viewModel(),
     dailyBookViewModel: DailyBookViewModel = viewModel()
 ) {
-    // Corrección: Obtener currentUser de authViewModel.
-    // El error en la línea 62 "Unresolved reference getCurrentUser" indica que authViewModel no se resuelve bien.
     val currentUser = authViewModel.getCurrentUser()
     val context = LocalContext.current
     Log.d("HomeScreen", "Composing HomeScreen. Current user: ${currentUser?.email}")
 
     var showPhraseDialog by remember { mutableStateOf(false) }
     var currentPhraseToShow by remember { mutableStateOf<WeeklyPhrase?>(null) }
-    // Corrección: Acceder a uiState directamente si es un State<T> de Compose
-    val weeklyPhraseState by weeklyPhraseViewModel.uiState
+    // Corrección: Ahora se usa collectAsState() porque los ViewModels exponen StateFlow
+    val weeklyPhraseState by weeklyPhraseViewModel.uiState.collectAsState()
 
     var showBookDialog by remember { mutableStateOf(false) }
     var currentBookToShow by remember { mutableStateOf<DailyBook?>(null) }
-    // Corrección: Acceder a uiState directamente si es un State<T> de Compose
-    val dailyBookState by dailyBookViewModel.uiState
+    // Corrección: Ahora se usa collectAsState()
+    val dailyBookState by dailyBookViewModel.uiState.collectAsState()
 
     val colorNegro = Color.Black
     val colorVerdePrincipal = Color(0xFF00897B)
     val colorVerdeOscuroDegradado = Color(0xFF004D40)
 
-    // Efecto para observar cambios en currentUser y redirigir si es nulo
-    LaunchedEffect(currentUser) {
-        if (currentUser == null) {
-            Log.d("HomeScreen", "currentUser is null, navigating to login.")
-            // Navegar a login y limpiar el backstack para que el usuario no pueda volver a HomeScreen con el botón "atrás"
-            navController.navigate("login") {
-                popUpTo(navController.graph.startDestinationId) { inclusive = true }
-                launchSingleTop = true
-            }
-        }
-    }
-
+    // AppNavigation se encarga de la redirección si currentUser es null.
+    // Esta comprobación es una salvaguarda para esta pantalla específica.
     if (currentUser == null) {
-        // Muestra un indicador de carga o una pantalla vacía mientras se redirige.
-        // Esto evita intentar acceder a currentUser.email más adelante si es nulo.
-        Log.d("HomeScreen", "Current user IS NULL. Displaying loading indicator or waiting for redirect.")
+        Log.d("HomeScreen", "Current user IS NULL. Displaying loading/empty or waiting for AppNavigation redirect.")
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -107,7 +87,7 @@ fun HomeScreen(
         ) {
             CircularProgressIndicator(color = colorVerdePrincipal)
         }
-        return // Importante: No continuar si el usuario es nulo.
+        return // No renderizar el resto si no hay usuario.
     }
 
     // Diálogo para mostrar la frase completa
@@ -157,7 +137,7 @@ fun HomeScreen(
         }
     }
 
-    // Diálogo para mostrar los detalles del Libro del Mes/Día
+    // Diálogo para mostrar los detalles del Libro
     if (showBookDialog && currentBookToShow != null) {
         Dialog(onDismissRequest = { showBookDialog = false }) {
             Card(
@@ -172,67 +152,36 @@ fun HomeScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     currentBookToShow!!.imageUrl?.let { url ->
-                        Image(
-                            painter = rememberAsyncImagePainter(url),
-                            contentDescription = "Portada de ${currentBookToShow!!.title}",
-                            modifier = Modifier
-                                .height(200.dp)
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .padding(bottom = 16.dp),
-                            contentScale = ContentScale.Fit
-                        )
+                        if (url.isNotBlank()){
+                            Image(
+                                painter = rememberAsyncImagePainter(url),
+                                contentDescription = "Portada de ${currentBookToShow!!.title}",
+                                modifier = Modifier
+                                    .height(200.dp)
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .padding(bottom = 16.dp),
+                                contentScale = ContentScale.Fit
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier.height(150.dp).fillMaxWidth().background(Color.Gray.copy(alpha = 0.2f), RoundedCornerShape(8.dp)).padding(bottom = 16.dp),
+                                contentAlignment = Alignment.Center
+                            ) { Icon(imageVector = Icons.Filled.Book, contentDescription = "Libro sin imagen", tint = colorVerdePrincipal.copy(alpha = 0.7f), modifier = Modifier.size(60.dp)) }
+                        }
                     } ?: Box(
-                        modifier = Modifier
-                            .height(150.dp)
-                            .fillMaxWidth()
-                            .background(Color.Gray.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
-                            .padding(bottom = 16.dp),
+                        modifier = Modifier.height(150.dp).fillMaxWidth().background(Color.Gray.copy(alpha = 0.2f), RoundedCornerShape(8.dp)).padding(bottom = 16.dp),
                         contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Book,
-                            contentDescription = "Libro",
-                            tint = colorVerdePrincipal.copy(alpha = 0.7f),
-                            modifier = Modifier.size(60.dp)
-                        )
-                    }
+                    ) { Icon(imageVector = Icons.Filled.Book, contentDescription = "Libro", tint = colorVerdePrincipal.copy(alpha = 0.7f), modifier = Modifier.size(60.dp)) }
 
-                    Text(
-                        text = currentBookToShow!!.title,
-                        style = MaterialTheme.typography.headlineSmall,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-                    Text(
-                        text = "por ${currentBookToShow!!.author}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontStyle = FontStyle.Italic,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                        modifier = Modifier.padding(bottom = 12.dp)
-                    )
-                    currentBookToShow!!.genre?.let { genre ->
-                        Text("Género: $genre", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(bottom = 4.dp))
-                    }
-                    currentBookToShow!!.publicationDate?.let { date ->
-                        Text("Publicado: $date", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(bottom = 16.dp))
-                    }
-                    currentBookToShow!!.description?.let { description ->
-                        Text(
-                            text = description,
-                            style = MaterialTheme.typography.bodyLarge,
-                            textAlign = TextAlign.Justify,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
+
+                    Text(text = currentBookToShow!!.title, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
+                    Text(text = "por ${currentBookToShow!!.author}", style = MaterialTheme.typography.titleMedium, fontStyle = FontStyle.Italic, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f), modifier = Modifier.padding(bottom = 12.dp))
+                    currentBookToShow!!.genre?.let { genre -> if(genre.isNotBlank()) Text("Género: $genre", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(bottom = 4.dp)) }
+                    currentBookToShow!!.publicationDate?.let { date -> if(date.isNotBlank()) Text("Publicado: $date", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(bottom = 16.dp)) }
+                    currentBookToShow!!.description?.let { description -> if(description.isNotBlank()) Text(text = description, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Justify, color = MaterialTheme.colorScheme.onSurface) }
                     Spacer(modifier = Modifier.height(24.dp))
-                    Button(
-                        onClick = { showBookDialog = false },
-                        colors = ButtonDefaults.buttonColors(containerColor = colorVerdePrincipal)
-                    ) {
+                    Button(onClick = { showBookDialog = false }, colors = ButtonDefaults.buttonColors(containerColor = colorVerdePrincipal)) {
                         Text("Cerrar", color = Color.White)
                     }
                 }
@@ -244,41 +193,25 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        "Total Health",
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                },
+                title = { Text("Total Health", fontWeight = FontWeight.Bold, color = Color.White) },
                 navigationIcon = {
                     Image(
                         painter = painterResource(id = R.drawable.logo_totalhealth),
                         contentDescription = "Logo App",
-                        modifier = Modifier
-                            .padding(start = 12.dp)
-                            .size(32.dp)
-                            .clip(CircleShape)
+                        modifier = Modifier.padding(start = 12.dp).size(32.dp).clip(CircleShape)
                     )
                 },
                 actions = {
                     IconButton(onClick = {
                         Log.d("HomeScreen", "Logout button clicked.")
-                        // Corrección: Llamar a authViewModel.logoutUser()
                         authViewModel.logoutUser()
                         Toast.makeText(context, "Cerrando sesión...", Toast.LENGTH_SHORT).show()
-                        // La navegación a login debería ser manejada por el LaunchedEffect que observa currentUser
+                        // La navegación a login será manejada por AppNavigation
                     }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                            contentDescription = "Cerrar Sesión",
-                            tint = Color.White
-                        )
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Cerrar Sesión", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = colorNegro
-                )
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = colorNegro)
             )
         },
         containerColor = colorNegro
@@ -288,20 +221,11 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            colorNegro,
-                            colorVerdeOscuroDegradado
-                        ),
-                        startY = 0f,
-                        endY = Float.POSITIVE_INFINITY
-                    )
+                    brush = Brush.verticalGradient(colors = listOf(colorNegro, colorVerdeOscuroDegradado))
                 )
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Corrección: currentUser ya se verificó que no es nulo.
-            // El error "Unresolved reference email" en línea 293 sugiere que currentUser.email no se resolvía bien.
             Text(
                 text = "¡Hola, ${currentUser.email?.substringBefore('@') ?: "Usuario"}!",
                 style = MaterialTheme.typography.headlineMedium,
@@ -315,112 +239,69 @@ fun HomeScreen(
                 modifier = Modifier.padding(bottom = 24.dp)
             )
 
-            FeatureCard(
-                title = "Mi Progreso",
-                description = "Visualiza tu avance físico y mental.",
-                icon = Icons.Filled.Assessment,
-                onClick = {
-                    Log.d("HomeScreen", "Navigating to progress_screen.")
-                    navController.navigate("progress_screen")
-                }
-            )
+            FeatureCard(title = "Mi Progreso", description = "Visualiza tu avance físico y mental.", icon = Icons.Filled.Assessment, onClick = { navController.navigate("progress_screen") })
             Spacer(modifier = Modifier.height(16.dp))
-
-            FeatureCard(
-                title = "Reporte de Comida",
-                description = "Lleva un control de tu alimentación.",
-                icon = Icons.Filled.RestaurantMenu,
-                onClick = {
-                    Log.d("HomeScreen", "Navigating to food_report screen.")
-                    navController.navigate("food_report")
-                }
-            )
+            FeatureCard(title = "Reporte de Comida", description = "Lleva un control de tu alimentación.", icon = Icons.Filled.RestaurantMenu, onClick = { navController.navigate("food_report") })
             Spacer(modifier = Modifier.height(16.dp))
-
-            FeatureCard(
-                title = "Diario de Mejoras",
-                description = "Reflexiona sobre tus logros y metas.",
-                icon = Icons.Filled.EditNote,
-                onClick = { navController.navigate("improvements_journal_screen") } // TODO: Implementar
-            )
+            FeatureCard(title = "Diario de Mejoras", description = "Reflexiona sobre tus logros y metas.", icon = Icons.Filled.EditNote, onClick = {
+                Toast.makeText(context, "Diario: Próximamente", Toast.LENGTH_SHORT).show()
+            })
             Spacer(modifier = Modifier.height(16.dp))
 
             Row(Modifier.fillMaxWidth()) {
-                when (val state = weeklyPhraseState) {
-                    is WeeklyPhraseUiState.Success -> {
-                        FeatureCardSmall(
-                            title = "Frase Semanal",
-                            icon = Icons.Filled.FormatQuote,
-                            onClick = {
-                                currentPhraseToShow = state.phrase
-                                showPhraseDialog = true
-                            },
-                            modifier = Modifier.weight(1f),
-                            content = {
-                                Text(
-                                    text = "\"${state.phrase.phrase.take(35)}${if (state.phrase.phrase.length > 35) "..." else ""}\"",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.White.copy(alpha = 0.9f),
-                                    textAlign = TextAlign.Center,
-                                    maxLines = 2,
-                                    lineHeight = 14.sp
-                                )
-                            }
-                        )
-                    }
-                    is WeeklyPhraseUiState.Loading -> {
-                        FeatureCardSmall(title = "Frase Semanal", icon = Icons.Filled.FormatQuote, onClick = {}, modifier = Modifier.weight(1f), content = { CircularProgressIndicator(modifier = Modifier.size(24.dp), color = colorVerdePrincipal) })
-                    }
-                    is WeeklyPhraseUiState.Error, is WeeklyPhraseUiState.Empty -> {
-                        FeatureCardSmall(title = "Frase Semanal", icon = Icons.Filled.FormatQuote, onClick = { weeklyPhraseViewModel.loadWeeklyPhrase() }, modifier = Modifier.weight(1f), content = { Text( "No disponible", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.7f) ) })
+                val phraseContent = weeklyPhraseState
+                FeatureCardSmall(
+                    title = "Frase Semanal",
+                    icon = Icons.Filled.FormatQuote,
+                    onClick = {
+                        if (phraseContent is WeeklyPhraseUiState.Success) {
+                            currentPhraseToShow = phraseContent.phrase
+                            showPhraseDialog = true
+                        } else if (phraseContent is WeeklyPhraseUiState.Error || phraseContent is WeeklyPhraseUiState.Empty) {
+                            weeklyPhraseViewModel.loadWeeklyPhrase()
+                        }
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    when (phraseContent) {
+                        is WeeklyPhraseUiState.Success -> Text("\"${phraseContent.phrase.phrase.take(35)}${if (phraseContent.phrase.phrase.length > 35) "..." else ""}\"", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.9f), textAlign = TextAlign.Center, maxLines = 2, lineHeight = 14.sp)
+                        is WeeklyPhraseUiState.Loading -> CircularProgressIndicator(modifier = Modifier.size(24.dp), color = colorVerdePrincipal)
+                        is WeeklyPhraseUiState.Error -> Text("Error al cargar", style = MaterialTheme.typography.bodySmall, color = Color.Red.copy(alpha = 0.8f))
+                        is WeeklyPhraseUiState.Empty -> Text("No hay frase", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.7f))
                     }
                 }
+
                 Spacer(modifier = Modifier.width(16.dp))
-                when (val state = dailyBookState) {
-                    is DailyBookUiState.Success -> {
-                        FeatureCardSmall(
-                            title = "Libro del Mes",
-                            icon = Icons.Filled.Book,
-                            onClick = {
-                                currentBookToShow = state.book
-                                showBookDialog = true
-                            },
-                            modifier = Modifier.weight(1f),
-                            content = {
-                                Text(
-                                    text = state.book.title,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.White.copy(alpha = 0.9f),
-                                    textAlign = TextAlign.Center,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    text = state.book.author,
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                    color = Color.White.copy(alpha = 0.7f),
-                                    textAlign = TextAlign.Center,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        )
-                    }
-                    is DailyBookUiState.Loading -> {
-                        FeatureCardSmall(title = "Libro del Mes", icon = Icons.Filled.Book, onClick = {}, modifier = Modifier.weight(1f), content = { CircularProgressIndicator(modifier = Modifier.size(24.dp), color = colorVerdePrincipal) })
-                    }
-                    is DailyBookUiState.Error, is DailyBookUiState.Empty -> {
-                        FeatureCardSmall(title = "Libro del Mes", icon = Icons.Filled.Book, onClick = { dailyBookViewModel.loadBookOfTheMonth() }, modifier = Modifier.weight(1f), content = { Text( "No disponible", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.7f) ) })
+
+                val bookContent = dailyBookState
+                FeatureCardSmall(
+                    title = "Libro del Mes",
+                    icon = Icons.Filled.Book,
+                    onClick = {
+                        if (bookContent is DailyBookUiState.Success) {
+                            currentBookToShow = bookContent.book
+                            showBookDialog = true
+                        } else if (bookContent is DailyBookUiState.Error || bookContent is DailyBookUiState.Empty) {
+                            dailyBookViewModel.loadBookOfTheMonth()
+                        }
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    when (bookContent) {
+                        is DailyBookUiState.Success -> {
+                            Text(bookContent.book.title, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.9f), textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(bookContent.book.author, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = Color.White.copy(alpha = 0.7f), textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                        is DailyBookUiState.Loading -> CircularProgressIndicator(modifier = Modifier.size(24.dp), color = colorVerdePrincipal)
+                        is DailyBookUiState.Error -> Text("Error al cargar", style = MaterialTheme.typography.bodySmall, color = Color.Red.copy(alpha = 0.8f))
+                        is DailyBookUiState.Empty -> Text("No hay libro", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.7f))
                     }
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
-            FeatureCard(
-                title = "Ajustes",
-                description = "Configura tu perfil y preferencias.",
-                icon = Icons.Filled.Settings,
-                onClick = { navController.navigate("settings_screen") } // TODO: Implementar
-            )
+            FeatureCard(title = "Ajustes", description = "Configura tu perfil y preferencias.", icon = Icons.Filled.Settings, onClick = {
+                navController.navigate("settings_screen")
+            })
 
             Spacer(modifier = Modifier.weight(1f))
 
@@ -429,14 +310,13 @@ fun HomeScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.White.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp)
+                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
             )
         }
     }
 }
 
+// FeatureCard y FeatureCardSmall se mantienen igual, ya que parecen correctos.
 @Composable
 fun FeatureCard(title: String, description: String, icon: ImageVector, onClick: () -> Unit) {
     val colorVerdePrincipal = Color(0xFF00897B)

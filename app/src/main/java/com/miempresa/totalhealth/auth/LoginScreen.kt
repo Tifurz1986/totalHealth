@@ -34,14 +34,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.miempresa.totalhealth.R // Asegúrate que esta R sea la correcta
+import com.miempresa.totalhealth.R
 
 @Composable
 fun LoginScreen(
     navController: NavController,
     authViewModel: AuthViewModel = viewModel()
 ) {
-    // Corrección: Usar authAndRoleUiState y renombrar la variable local para mayor claridad
     val authState by authViewModel.authAndRoleUiState.collectAsState()
     val email by authViewModel.email
     val password by authViewModel.password
@@ -56,38 +55,27 @@ fun LoginScreen(
     LaunchedEffect(key1 = authState) {
         Log.d("LoginScreen", "authState changed: $authState")
         when (val state = authState) {
-            // Corrección: Usar AuthAndRoleUiState.Authenticated
             is AuthAndRoleUiState.Authenticated -> {
-                Log.d("LoginScreen", "AuthAndRoleUiState.Authenticated detected. Navigating to home.")
-                Toast.makeText(context, "Inicio de sesión exitoso", Toast.LENGTH_SHORT).show()
-                navController.navigate("home") {
-                    popUpTo("login") { inclusive = true } // Limpia el backstack hasta "login"
-                    launchSingleTop = true
-                }
-                Log.d("LoginScreen", "Navigation to home called. State is Authenticated.")
-                // No es necesario resetear el estado aquí, AuthViewModel lo maneja o la navegación.
-                // authViewModel.resetState() // Opcional: si quieres que el estado vuelva a Idle inmediatamente después de la acción.
-                // Sin embargo, al navegar a otra pantalla, el ViewModel de esta podría reiniciarse
-                // o el usuario podría volver y encontrar un estado inesperado.
-                // Es mejor que el ViewModel gestione su estado interno post-autenticación.
+                // La navegación a la pantalla principal (home_user o home_admin)
+                // ahora es manejada por el LaunchedEffect en AppNavigation (App.kt).
+                Log.d("LoginScreen", "AuthAndRoleUiState.Authenticated detected in LoginScreen. AppNavigation should handle navigation.")
+                Toast.makeText(context, "Inicio de sesión exitoso. Redirigiendo...", Toast.LENGTH_SHORT).show()
+                // No es necesario llamar a authViewModel.resetState() aquí,
+                // ya que el estado Authenticated debe ser visible para AppNavigation.
+                // El estado se cambiará a Idle solo al hacer logout.
             }
-            // Corrección: Usar AuthAndRoleUiState.Error
             is AuthAndRoleUiState.Error -> {
-                Log.d("LoginScreen", "AuthAndRoleUiState.Error: ${state.message}")
+                Log.e("LoginScreen", "AuthAndRoleUiState.Error: ${state.message}")
                 Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
-                authViewModel.resetState() // Vuelve a Idle para permitir nuevos intentos
+                // authViewModel.resetState() // El ViewModel ahora resetea el error al cambiar el texto,
+                // o se puede llamar explícitamente si se desea un botón de "Reintentar" o similar.
             }
-            is AuthAndRoleUiState.AuthLoading -> {
-                Log.d("LoginScreen", "State is AuthLoading.")
-                // El CircularProgressIndicator en el botón ya maneja la UI de carga para AuthLoading
-            }
-            is AuthAndRoleUiState.RoleLoading -> {
-                Log.d("LoginScreen", "State is RoleLoading.")
-                // Similar a AuthLoading, el indicador puede cubrir esto.
+            is AuthAndRoleUiState.AuthLoading, is AuthAndRoleUiState.RoleLoading -> {
+                Log.d("LoginScreen", "State is Loading (Auth or Role).")
+                // El CircularProgressIndicator en el botón ya maneja la UI de carga.
             }
             is AuthAndRoleUiState.Idle -> {
                 Log.d("LoginScreen", "State is Idle.")
-                // Estado inicial o después de un reset o logout.
             }
         }
     }
@@ -170,7 +158,6 @@ fun LoginScreen(
                                 imeAction = ImeAction.Next
                             ),
                             singleLine = true,
-                            // Corrección: Comprobar estados de carga de AuthAndRoleUiState
                             enabled = authState !is AuthAndRoleUiState.AuthLoading && authState !is AuthAndRoleUiState.RoleLoading,
                             shape = RoundedCornerShape(12.dp),
                             colors = OutlinedTextFieldDefaults.colors(
@@ -212,6 +199,8 @@ fun LoginScreen(
                                     focusManager.clearFocus()
                                     if (email.isNotBlank() && password.isNotBlank()) {
                                         authViewModel.loginUser()
+                                    } else {
+                                        Toast.makeText(context, "Completa todos los campos.", Toast.LENGTH_SHORT).show()
                                     }
                                 }
                             ),
@@ -223,7 +212,6 @@ fun LoginScreen(
                                 }
                             },
                             singleLine = true,
-                            // Corrección: Comprobar estados de carga de AuthAndRoleUiState
                             enabled = authState !is AuthAndRoleUiState.AuthLoading && authState !is AuthAndRoleUiState.RoleLoading,
                             shape = RoundedCornerShape(12.dp),
                             colors = OutlinedTextFieldDefaults.colors(
@@ -236,13 +224,13 @@ fun LoginScreen(
                                 unfocusedTextColor = Color.White.copy(alpha = 0.9f),
                                 focusedLeadingIconColor = colorVerdePrincipal,
                                 unfocusedLeadingIconColor = Color.White.copy(alpha = 0.7f),
-                                focusedTrailingIconColor = colorVerdePrincipal, // Añadido para consistencia
-                                unfocusedTrailingIconColor = Color.White.copy(alpha = 0.7f), // Añadido para consistencia
+                                focusedTrailingIconColor = colorVerdePrincipal,
+                                unfocusedTrailingIconColor = Color.White.copy(alpha = 0.7f),
                                 disabledTextColor = Color.Gray,
                                 disabledBorderColor = Color.DarkGray,
                                 disabledLabelColor = Color.Gray,
                                 disabledLeadingIconColor = Color.Gray,
-                                disabledTrailingIconColor = Color.Gray // Añadido para consistencia
+                                disabledTrailingIconColor = Color.Gray
                             )
                         )
                         Spacer(modifier = Modifier.height(32.dp))
@@ -250,27 +238,29 @@ fun LoginScreen(
                         Button(
                             onClick = {
                                 focusManager.clearFocus()
-                                authViewModel.loginUser()
+                                if (email.isNotBlank() && password.isNotBlank()) {
+                                    authViewModel.loginUser()
+                                } else {
+                                    Toast.makeText(context, "Completa todos los campos.", Toast.LENGTH_SHORT).show()
+                                }
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp),
-                            // Corrección: Comprobar estados de carga de AuthAndRoleUiState
                             enabled = authState !is AuthAndRoleUiState.AuthLoading && authState !is AuthAndRoleUiState.RoleLoading,
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = colorVerdePrincipal,
                                 contentColor = Color.White,
-                                disabledContainerColor = colorVerdePrincipal.copy(alpha = 0.5f), // Estilo para deshabilitado
+                                disabledContainerColor = colorVerdePrincipal.copy(alpha = 0.5f),
                                 disabledContentColor = Color.White.copy(alpha = 0.7f)
                             )
                         ) {
-                            // Corrección: Mostrar indicador si está en AuthLoading o RoleLoading
                             if (authState is AuthAndRoleUiState.AuthLoading || authState is AuthAndRoleUiState.RoleLoading) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(24.dp),
                                     color = Color.White,
-                                    strokeWidth = 2.dp // Opcional: ajustar grosor
+                                    strokeWidth = 2.dp
                                 )
                             } else {
                                 Text("Entrar", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
@@ -283,16 +273,15 @@ fun LoginScreen(
 
                 TextButton(
                     onClick = {
-                        authViewModel.clearFields()
-                        authViewModel.resetState() // Vuelve a Idle antes de navegar
+                        authViewModel.clearFields() // Limpiar campos antes de ir a registro
+                        authViewModel.resetState() // Asegurar estado Idle antes de navegar
                         navController.navigate("register")
                     },
-                    // Corrección: Comprobar estados de carga de AuthAndRoleUiState
                     enabled = authState !is AuthAndRoleUiState.AuthLoading && authState !is AuthAndRoleUiState.RoleLoading
                 ) {
                     Text("¿No tienes cuenta? Regístrate aquí", color = Color.White.copy(alpha = 0.9f))
                 }
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp)) // Espacio al final
             }
         }
     }

@@ -1,11 +1,12 @@
 package com.miempresa.totalhealth.content
 
 import android.util.Log
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.Date
@@ -13,10 +14,9 @@ import java.util.Date
 // Estado para la UI de la frase semanal
 sealed class WeeklyPhraseUiState {
     object Loading : WeeklyPhraseUiState()
-    // Corrección: Usar el nombre de clase 'WeeklyPhrase' (sin acentos graves)
     data class Success(val phrase: WeeklyPhrase) : WeeklyPhraseUiState()
     object Error : WeeklyPhraseUiState()
-    object Empty : WeeklyPhraseUiState()
+    object Empty : WeeklyPhraseUiState() // Para cuando no hay frases
 }
 
 // Lista de frases motivacionales.
@@ -27,7 +27,6 @@ private val motivationalPhrasesList: List<Pair<String, String?>> = listOf(
     Pair("El mejor momento para plantar un árbol fue hace 20 años. El segundo mejor momento es ahora.", "Proverbio Chino"),
     Pair("Tu tiempo es limitado, así que no lo malgastes viviendo la vida de otra persona.", "Steve Jobs"),
     Pair("Cree que puedes y estarás a medio camino.", "Theodore Roosevelt"),
-    // ... (Asegúrate de que tu lista completa esté aquí) ...
     Pair("La perseverancia es fallar 19 veces y tener éxito en la vigésima.", "Julie Andrews"),
     Pair("Haz de cada día tu obra maestra.", "John Wooden"),
     Pair("La actitud es una pequeña cosa que marca una gran diferencia.", "Winston Churchill"),
@@ -87,8 +86,10 @@ private val motivationalPhrasesList: List<Pair<String, String?>> = listOf(
 
 class WeeklyPhraseViewModel : ViewModel() {
 
-    private val _uiState = mutableStateOf<WeeklyPhraseUiState>(WeeklyPhraseUiState.Loading)
-    val uiState: State<WeeklyPhraseUiState> = _uiState
+    // Corrección: Usar MutableStateFlow
+    private val _uiState = MutableStateFlow<WeeklyPhraseUiState>(WeeklyPhraseUiState.Loading)
+    // Corrección: Exponer como StateFlow inmutable
+    val uiState: StateFlow<WeeklyPhraseUiState> = _uiState.asStateFlow()
 
     init {
         loadWeeklyPhrase()
@@ -98,7 +99,7 @@ class WeeklyPhraseViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = WeeklyPhraseUiState.Loading
             try {
-                delay(100)
+                delay(100) // Simular carga de red/DB
 
                 if (motivationalPhrasesList.isEmpty()) {
                     _uiState.value = WeeklyPhraseUiState.Empty
@@ -110,27 +111,30 @@ class WeeklyPhraseViewModel : ViewModel() {
                 val currentYear = calendar.get(Calendar.YEAR)
                 val currentWeekOfYear = calendar.get(Calendar.WEEK_OF_YEAR)
 
-                val yearBase = 2024
-                val weeksInYearApproximation = 53
+                // Algoritmo para seleccionar una frase basada en la semana del año
+                // (Asegura que el índice sea positivo)
+                val yearBase = 2024 // Un año base para el cálculo del seed
+                val weeksInYearApproximation = 53 // Una aproximación para el cálculo
                 val weekSeed = (currentYear - yearBase) * weeksInYearApproximation + currentWeekOfYear
 
                 val phraseIndex = weekSeed % motivationalPhrasesList.size
+                // Asegurar que el índice final sea positivo si weekSeed % size da negativo
                 val finalIndex = if (phraseIndex < 0) phraseIndex + motivationalPhrasesList.size else phraseIndex
 
 
                 if (finalIndex >= 0 && finalIndex < motivationalPhrasesList.size) {
                     val selectedPhraseData = motivationalPhrasesList[finalIndex]
-                    // Corrección: Usar el nombre de clase 'WeeklyPhrase' (sin acentos graves)
                     val weeklyPhraseObject = WeeklyPhrase(
                         id = "phrase_${currentYear}_$currentWeekOfYear",
                         weekNumber = currentWeekOfYear,
                         phrase = selectedPhraseData.first,
                         author = selectedPhraseData.second,
-                        createdAt = Date()
+                        createdAt = Date() // O la fecha actual del servidor si la obtienes de allí
                     )
                     _uiState.value = WeeklyPhraseUiState.Success(weeklyPhraseObject)
                     Log.d("WeeklyPhraseVM", "Semana: $currentWeekOfYear, Índice: $finalIndex, Frase: ${weeklyPhraseObject.phrase}")
                 } else {
+                    // Este caso no debería ocurrir si la lógica del índice es correcta y la lista no está vacía
                     Log.e("WeeklyPhraseVM", "Índice de frase fuera de rango: $finalIndex. Tamaño de lista: ${motivationalPhrasesList.size}")
                     _uiState.value = WeeklyPhraseUiState.Error
                 }
