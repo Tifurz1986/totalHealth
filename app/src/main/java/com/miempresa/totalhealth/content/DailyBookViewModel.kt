@@ -11,15 +11,14 @@ import java.util.Calendar
 import java.util.Date
 
 // Estado para la UI del libro
-sealed class DailyBookUiState { // Mantendremos el nombre DailyBookUiState por consistencia
+sealed class DailyBookUiState { // Mantenemos el nombre DailyBookUiState por consistencia
     object Loading : DailyBookUiState()
     data class Success(val book: DailyBook) : DailyBookUiState()
     object Error : DailyBookUiState()
     object Empty : DailyBookUiState()
 }
 
-// Lista de libros predefinidos. ¡Añade más para una rotación mensual variada!
-// Considera mover esta lista a un archivo/objeto separado si se vuelve muy grande.
+// Lista de libros predefinidos.
 private val bookRecommendationsList: List<DailyBook> = listOf(
     DailyBook(id="B001", title = "El Poder del Ahora", author = "Eckhart Tolle", description = "Una guía para la iluminación espiritual y vivir plenamente en el presente.", genre = "Autoayuda", publicationDate = "1997", imageUrl = "https://covers.openlibrary.org/b/isbn/9780340733509-L.jpg"),
     DailyBook(id="B002", title = "Hábitos Atómicos", author = "James Clear", description = "Un método sencillo y probado para desarrollar buenos hábitos y romper los malos, logrando resultados notables.", genre = "Desarrollo Personal", publicationDate = "2018", imageUrl = "https://covers.openlibrary.org/b/isbn/9780735211292-L.jpg"),
@@ -33,11 +32,9 @@ private val bookRecommendationsList: List<DailyBook> = listOf(
     DailyBook(id="B010", title = "Cien años de soledad", author = "Gabriel García Márquez", description = "La épica historia de la familia Buendía a lo largo de siete generaciones en el mítico Macondo.", genre = "Realismo Mágico", publicationDate = "1967", imageUrl = "https://covers.openlibrary.org/b/isbn/9780060883287-L.jpg"),
     DailyBook(id="B011", title = "El Principito", author = "Antoine de Saint-Exupéry", description = "Una poética historia sobre la amistad, el amor, la pérdida y el sentido de la vida.", genre = "Fábula Filosófica", publicationDate = "1943", imageUrl = "https://covers.openlibrary.org/b/isbn/9780156012195-L.jpg"),
     DailyBook(id="B012", title = "Meditaciones", author = "Marco Aurelio", description = "Reflexiones personales del emperador romano sobre la filosofía estoica y el arte de vivir.", genre = "Filosofía", publicationDate = "c. 170-180 d.C.", imageUrl = "https://covers.openlibrary.org/b/isbn/9780140449334-L.jpg")
-    // Añade más libros para tener al menos 12 para una rotación mensual durante un año.
-    // Si quieres más variedad, añade más.
 )
 
-class DailyBookViewModel : ViewModel() { // Puedes renombrarlo a MonthlyBookViewModel si prefieres
+class DailyBookViewModel : ViewModel() {
 
     private val _uiState = mutableStateOf<DailyBookUiState>(DailyBookUiState.Loading)
     val uiState: State<DailyBookUiState> = _uiState
@@ -46,7 +43,7 @@ class DailyBookViewModel : ViewModel() { // Puedes renombrarlo a MonthlyBookView
         loadBookOfTheMonth()
     }
 
-    fun loadBookOfTheMonth() { // Cambiado para lógica mensual
+    fun loadBookOfTheMonth() {
         viewModelScope.launch {
             _uiState.value = DailyBookUiState.Loading
             try {
@@ -62,9 +59,7 @@ class DailyBookViewModel : ViewModel() { // Puedes renombrarlo a MonthlyBookView
                 val currentYear = calendar.get(Calendar.YEAR)
                 val currentMonth = calendar.get(Calendar.MONTH) // 0 (Enero) a 11 (Diciembre)
 
-                // Semilla para rotación mensual
-                // (Año - año_base) * 12 meses + mes_actual
-                val yearBase = 2024 // Ajusta el año base si es necesario
+                val yearBase = 2024
                 val seed = (currentYear - yearBase) * 12 + currentMonth
 
                 val bookIndex = seed % bookRecommendationsList.size
@@ -73,8 +68,8 @@ class DailyBookViewModel : ViewModel() { // Puedes renombrarlo a MonthlyBookView
 
                 if (finalIndex >= 0 && finalIndex < bookRecommendationsList.size) {
                     val selectedBook = bookRecommendationsList[finalIndex].copy(
-                        id = "book_${currentYear}_${currentMonth + 1}", // ID único para el libro de este mes
-                        featuredAt = Date() // Marcar cuándo se destacó este objeto en la app
+                        id = "book_${currentYear}_${currentMonth + 1}",
+                        featuredAt = Date()
                     )
                     _uiState.value = DailyBookUiState.Success(selectedBook)
                     Log.d("DailyBookVM", "Libro del mes cargado (Índice $finalIndex): ${selectedBook.title}")

@@ -1,4 +1,4 @@
-package auth
+package com.miempresa.totalhealth.auth
 
 import android.util.Log
 import android.widget.Toast
@@ -34,14 +34,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.miempresa.totalhealth.R
+import com.miempresa.totalhealth.R // Asegúrate que esta R sea la correcta
 
 @Composable
-fun LoginScreen(
+fun RegisterScreen(
     navController: NavController,
     authViewModel: AuthViewModel = viewModel()
 ) {
-    val uiState by authViewModel.uiState.collectAsState()
+    // Corrección: Usar authAndRoleUiState y renombrar la variable local
+    val authState by authViewModel.authAndRoleUiState.collectAsState()
     val email by authViewModel.email
     val password by authViewModel.password
     val passwordVisible by authViewModel.passwordVisible
@@ -49,37 +50,87 @@ fun LoginScreen(
     val focusManager = LocalFocusManager.current
 
     val colorNegro = Color.Black
-    // Un verde más vibrante para el degradado y el botón, que contraste bien con el negro
-    val colorVerdePrincipal = Color(0xFF00897B) // Ajusta este verde a tu gusto (Teal 700)
-    val colorVerdeOscuroDegradado = Color(0xFF004D40) // Verde más oscuro para el final del degradado
+    val colorVerdePrincipal = Color(0xFF00897B)
+    val colorVerdeOscuroDegradado = Color(0xFF004D40)
 
-    LaunchedEffect(key1 = uiState) {
-        Log.d("LoginScreen", "uiState changed: $uiState")
-        when (val state = uiState) {
-            is AuthUiState.Success -> {
-                Log.d("LoginScreen", "AuthUiState.Success detected. Navigating to home.")
-                Toast.makeText(context, "Inicio de sesión exitoso", Toast.LENGTH_SHORT).show()
-                navController.navigate("home") {
-                    popUpTo("login") { inclusive = true }
+    LaunchedEffect(key1 = authState) {
+        Log.d("RegisterScreen", "authState changed: $authState")
+        when (val state = authState) {
+            // Corrección: Usar AuthAndRoleUiState.Authenticated para indicar registro exitoso
+            // En el flujo de registro, Authenticated significa que el usuario se creó
+            // y ahora puede proceder a iniciar sesión.
+            is AuthAndRoleUiState.Authenticated -> {
+                Log.d("RegisterScreen", "AuthAndRoleUiState.Authenticated (Registro exitoso) detected. Navigating to login.")
+                Toast.makeText(context, "Registro completado. Ahora puedes iniciar sesión.", Toast.LENGTH_LONG).show()
+                authViewModel.clearFields() // Limpiar campos después de un registro exitoso
+                // authViewModel.resetState() // Importante: resetear a Idle ANTES de navegar a login,
+                // para que login no reaccione a un estado Authenticated
+                // que no proviene de un intento de login.
+                navController.navigate("login") {
+                    popUpTo("register") { inclusive = true } // Limpia el backstack hasta "register"
                     launchSingleTop = true
                 }
-                Log.d("LoginScreen", "Navigation to home called. State remains Success.")
+                // El resetState se hace en AuthViewModel después de un registro exitoso en algunos casos,
+                // o se puede manejar aquí para asegurar que la pantalla de login no lo interprete mal.
+                // Es crucial que al llegar a LoginScreen, el estado sea Idle o uno que LoginScreen espere al inicio.
+                // AuthViewModel.registerUser() ya pone Authenticated.
+                // Si navegas y el AuthViewModel es el mismo (compartido), LoginScreen vería Authenticated.
+                // Por eso, clearFields y resetState antes de navegar es más seguro.
+                // La lógica actual en AuthViewModel es:
+                // _authAndRoleUiState.value = AuthAndRoleUiState.Authenticated(firebaseUser, UserRole.USER)
+                // clearFields()
+                // Así que el resetState aquí asegura que si el usuario vuelve a Register, esté Idle.
+                // Y LoginScreen comenzará con el estado que tenga el ViewModel en ese momento.
+                // La navegación con popUpTo(login) { inclusive = true} podría ser mejor si registro es el inicio de ese flujo.
+                // Si popUpTo("register") es correcto, entonces LoginScreen no debería reaccionar a Authenticated inmediatamente.
+                // authViewModel.resetState() // <-- Es buena idea llamarlo después de clearFields() y ANTES de navegar.
+                // Esto previene que si el ViewModel es compartido y no se destruye,
+                // la siguiente pantalla (Login) reaccione a un estado Authenticated
+                // no intencionado por ella.
+                // Re-evaluando: AuthViewModel.registerUser() ya llama a clearFields().
+                // El estado Authenticated es el resultado del registro. Es correcto.
+                // El problema podría ser si LoginScreen reacciona a este Authenticated sin un login explícito.
+                // Para RegisterScreen, este es el final exitoso del flujo.
+                // Si queremos que LoginScreen no reaccione, el reset debe ocurrir en el ViewModel
+                // o justo antes de la navegación aquí.
+                // Como LoginScreen ahora tiene su propio LaunchedEffect que reacciona a Authenticated
+                // para navegar a home, es VITAL que el estado NO sea Authenticated cuando
+                // se llega a LoginScreen DESPUÉS de un registro.
+                // Solución: AuthViewModel debería volver a Idle después de un registro exitoso si la navegación es a Login.
+                // O, RegisterScreen fuerza un reset ANTES de navegar.
+                // La llamada a `authViewModel.clearFields()` y `authViewModel.resetState()`
+                // en el TextButton de "Ya tienes cuenta?" es un buen ejemplo.
+                // Hagamos lo mismo aquí para consistencia.
+                authViewModel.resetState() // Asegura que cuando se navegue a login, el estado no sea "Authenticated" del registro.
+
+                Log.d("RegisterScreen", "Navigation to login called. State reset to Idle.")
             }
-            is AuthUiState.Error -> {
-                Log.d("LoginScreen", "AuthUiState.Error: ${state.message}")
+            // Corrección: Usar AuthAndRoleUiState.Error
+            is AuthAndRoleUiState.Error -> {
+                Log.d("RegisterScreen", "AuthAndRoleUiState.Error: ${state.message}")
                 Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
-                authViewModel.resetState()
+                authViewModel.resetState() // Vuelve a Idle para permitir nuevos intentos
             }
-            else -> Unit
+            is AuthAndRoleUiState.AuthLoading -> {
+                Log.d("RegisterScreen", "State is AuthLoading.")
+                // El CircularProgressIndicator en el botón maneja la UI de carga
+            }
+            is AuthAndRoleUiState.RoleLoading -> {
+                // Este estado no debería ocurrir durante el registro simple.
+                // Si ocurre, es un estado inesperado aquí.
+                Log.w("RegisterScreen", "Unexpected state: RoleLoading during registration flow.")
+            }
+            is AuthAndRoleUiState.Idle -> {
+                Log.d("RegisterScreen", "State is Idle.")
+            }
         }
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Sección superior con fondo negro sólido para el logo y bienvenida
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(0.4f) // Ajusta el peso para el tamaño de esta sección
+                .weight(0.35f)
                 .background(colorNegro),
             contentAlignment = Alignment.Center
         ) {
@@ -92,60 +143,55 @@ fun LoginScreen(
                     painter = painterResource(id = R.drawable.logo_totalhealth),
                     contentDescription = "Logo de Total Health",
                     modifier = Modifier
-                        .size(100.dp) // Ajusta el tamaño si es necesario
+                        .size(80.dp)
                         .padding(bottom = 16.dp),
                     contentScale = ContentScale.Fit
                 )
                 Text(
-                    text = "Bienvenido a Total Health",
-                    style = MaterialTheme.typography.headlineSmall, // Un poco más pequeño
+                    text = "Crea tu Cuenta",
+                    style = MaterialTheme.typography.headlineSmall,
                     color = Color.White,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Inicia sesión para continuar",
+                    text = "Únete a Total Health",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.7f), // Un poco menos opaco
+                    color = Color.White.copy(alpha = 0.7f),
                 )
             }
         }
 
-        // Sección inferior con degradado y tarjeta de login
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(0.6f) // Ajusta el peso
+                .weight(0.65f)
                 .background(
                     brush = Brush.verticalGradient(
-                        colors = listOf(
-                            colorNegro, // Comienza con negro para una transición suave
-                            colorVerdeOscuroDegradado // Termina con verde oscuro
-                        )
+                        colors = listOf(colorNegro, colorVerdeOscuroDegradado)
                     )
                 )
-                .padding(start = 32.dp, end = 32.dp, top = 16.dp, bottom = 16.dp), // Más padding horizontal
-            contentAlignment = Alignment.TopCenter // Alinear la tarjeta arriba en esta sección
+                .padding(start = 32.dp, end = 32.dp, top = 16.dp, bottom = 16.dp),
+            contentAlignment = Alignment.TopCenter
         ) {
-            Column( // Columna para permitir scroll si el contenido es mucho
+            Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp), // Bordes más redondeados
+                    shape = RoundedCornerShape(20.dp),
                     elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                     colors = CardDefaults.cardColors(
-                        // Un color de fondo para la tarjeta que no sea totalmente transparente
                         containerColor = Color.White.copy(alpha = 0.08f)
                     )
                 ) {
                     Column(
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 32.dp) // Padding ajustado
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 32.dp)
                     ) {
                         OutlinedTextField(
                             value = email,
                             onValueChange = { authViewModel.onEmailChange(it) },
-                            label = { Text("Correo Electrónico") }, // El color se hereda o se define en colors
+                            label = { Text("Correo Electrónico") },
                             modifier = Modifier.fillMaxWidth(),
                             leadingIcon = {
                                 Icon(
@@ -158,7 +204,8 @@ fun LoginScreen(
                                 imeAction = ImeAction.Next
                             ),
                             singleLine = true,
-                            enabled = uiState != AuthUiState.Loading,
+                            // Corrección: Comprobar estado de carga AuthLoading (RoleLoading no es relevante aquí)
+                            enabled = authState !is AuthAndRoleUiState.AuthLoading,
                             shape = RoundedCornerShape(12.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = colorVerdePrincipal,
@@ -181,7 +228,7 @@ fun LoginScreen(
                         OutlinedTextField(
                             value = password,
                             onValueChange = { authViewModel.onPasswordChange(it) },
-                            label = { Text("Contraseña") },
+                            label = { Text("Contraseña (mín. 6 caracteres)") },
                             modifier = Modifier.fillMaxWidth(),
                             leadingIcon = {
                                 Icon(
@@ -198,7 +245,7 @@ fun LoginScreen(
                                 onDone = {
                                     focusManager.clearFocus()
                                     if (email.isNotBlank() && password.isNotBlank()) {
-                                        authViewModel.loginUser()
+                                        authViewModel.registerUser()
                                     }
                                 }
                             ),
@@ -210,7 +257,8 @@ fun LoginScreen(
                                 }
                             },
                             singleLine = true,
-                            enabled = uiState != AuthUiState.Loading,
+                            // Corrección: Comprobar estado de carga AuthLoading
+                            enabled = authState !is AuthAndRoleUiState.AuthLoading,
                             shape = RoundedCornerShape(12.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = colorVerdePrincipal,
@@ -231,30 +279,35 @@ fun LoginScreen(
                                 disabledTrailingIconColor = Color.Gray
                             )
                         )
-                        Spacer(modifier = Modifier.height(32.dp)) // Más espacio antes del botón
+                        Spacer(modifier = Modifier.height(32.dp))
 
                         Button(
                             onClick = {
                                 focusManager.clearFocus()
-                                authViewModel.loginUser()
+                                authViewModel.registerUser()
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp),
-                            enabled = uiState != AuthUiState.Loading,
+                            // Corrección: Comprobar estado de carga AuthLoading
+                            enabled = authState !is AuthAndRoleUiState.AuthLoading,
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = colorVerdePrincipal,
-                                contentColor = Color.White
+                                contentColor = Color.White,
+                                disabledContainerColor = colorVerdePrincipal.copy(alpha = 0.5f),
+                                disabledContentColor = Color.White.copy(alpha = 0.7f)
                             )
                         ) {
-                            if (uiState == AuthUiState.Loading) {
+                            // Corrección: Mostrar indicador si está en AuthLoading
+                            if (authState is AuthAndRoleUiState.AuthLoading) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(24.dp),
-                                    color = Color.White
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
                                 )
                             } else {
-                                Text("Entrar", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                                Text("Registrarse", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }
@@ -265,14 +318,18 @@ fun LoginScreen(
                 TextButton(
                     onClick = {
                         authViewModel.clearFields()
-                        authViewModel.resetState()
-                        navController.navigate("register")
+                        authViewModel.resetState() // Vuelve a Idle antes de navegar
+                        navController.navigate("login") {
+                            popUpTo("register") { inclusive = true }
+                            launchSingleTop = true
+                        }
                     },
-                    enabled = uiState != AuthUiState.Loading
+                    // Corrección: Comprobar estado de carga AuthLoading
+                    enabled = authState !is AuthAndRoleUiState.AuthLoading
                 ) {
-                    Text("¿No tienes cuenta? Regístrate aquí", color = Color.White.copy(alpha = 0.9f))
+                    Text("¿Ya tienes cuenta? Inicia sesión", color = Color.White.copy(alpha = 0.9f))
                 }
-                Spacer(modifier = Modifier.height(16.dp)) // Espacio al final
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }

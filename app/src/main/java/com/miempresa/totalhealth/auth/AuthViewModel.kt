@@ -1,4 +1,4 @@
-package auth // Asegúrate que este sea el paquete
+package com.miempresa.totalhealth.auth // Asegúrate que este sea el paquete
 
 import android.util.Log
 import androidx.compose.runtime.State

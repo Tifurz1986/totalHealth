@@ -1,4 +1,4 @@
-package auth
+package com.miempresa.totalhealth.auth
 
 import android.util.Log
 import android.widget.Toast
@@ -34,14 +34,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.miempresa.totalhealth.R
+import com.miempresa.totalhealth.R // Asegúrate que esta R sea la correcta
 
 @Composable
-fun RegisterScreen(
+fun LoginScreen(
     navController: NavController,
     authViewModel: AuthViewModel = viewModel()
 ) {
-    val uiState by authViewModel.uiState.collectAsState()
+    // Corrección: Usar authAndRoleUiState y renombrar la variable local para mayor claridad
+    val authState by authViewModel.authAndRoleUiState.collectAsState()
     val email by authViewModel.email
     val password by authViewModel.password
     val passwordVisible by authViewModel.passwordVisible
@@ -49,42 +50,53 @@ fun RegisterScreen(
     val focusManager = LocalFocusManager.current
 
     val colorNegro = Color.Black
-    // Usaremos los mismos colores principales que en Login para consistencia
-    val colorVerdePrincipal = Color(0xFF00897B) // Teal 700
-    val colorVerdeOscuroDegradado = Color(0xFF004D40) // Verde más oscuro para el final del degradado
+    val colorVerdePrincipal = Color(0xFF00897B)
+    val colorVerdeOscuroDegradado = Color(0xFF004D40)
 
-
-    LaunchedEffect(key1 = uiState) {
-        Log.d("RegisterScreen", "uiState changed: $uiState")
-        when (val state = uiState) {
-            is AuthUiState.Success -> {
-                Log.d("RegisterScreen", "AuthUiState.Success detected. Navigating to login.")
-                Toast.makeText(context, "Registro completado. Ahora puedes iniciar sesión.", Toast.LENGTH_LONG).show()
-                authViewModel.clearFields() // Limpiar campos después de un registro exitoso
-                navController.navigate("login") {
-                    popUpTo("register") { inclusive = true }
+    LaunchedEffect(key1 = authState) {
+        Log.d("LoginScreen", "authState changed: $authState")
+        when (val state = authState) {
+            // Corrección: Usar AuthAndRoleUiState.Authenticated
+            is AuthAndRoleUiState.Authenticated -> {
+                Log.d("LoginScreen", "AuthAndRoleUiState.Authenticated detected. Navigating to home.")
+                Toast.makeText(context, "Inicio de sesión exitoso", Toast.LENGTH_SHORT).show()
+                navController.navigate("home") {
+                    popUpTo("login") { inclusive = true } // Limpia el backstack hasta "login"
                     launchSingleTop = true
                 }
-                // El estado ya es Success, no es necesario resetearlo a Idle aquí,
-                // ya que el usuario será redirigido a Login y el estado se manejará allí.
-                // authViewModel.resetState() // Comentado para mantener el estado Success hasta la siguiente acción
-                Log.d("RegisterScreen", "Navigation to login called. State remains Success.")
+                Log.d("LoginScreen", "Navigation to home called. State is Authenticated.")
+                // No es necesario resetear el estado aquí, AuthViewModel lo maneja o la navegación.
+                // authViewModel.resetState() // Opcional: si quieres que el estado vuelva a Idle inmediatamente después de la acción.
+                // Sin embargo, al navegar a otra pantalla, el ViewModel de esta podría reiniciarse
+                // o el usuario podría volver y encontrar un estado inesperado.
+                // Es mejor que el ViewModel gestione su estado interno post-autenticación.
             }
-            is AuthUiState.Error -> {
-                Log.d("RegisterScreen", "AuthUiState.Error: ${state.message}")
+            // Corrección: Usar AuthAndRoleUiState.Error
+            is AuthAndRoleUiState.Error -> {
+                Log.d("LoginScreen", "AuthAndRoleUiState.Error: ${state.message}")
                 Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
-                authViewModel.resetState()
+                authViewModel.resetState() // Vuelve a Idle para permitir nuevos intentos
             }
-            else -> Unit
+            is AuthAndRoleUiState.AuthLoading -> {
+                Log.d("LoginScreen", "State is AuthLoading.")
+                // El CircularProgressIndicator en el botón ya maneja la UI de carga para AuthLoading
+            }
+            is AuthAndRoleUiState.RoleLoading -> {
+                Log.d("LoginScreen", "State is RoleLoading.")
+                // Similar a AuthLoading, el indicador puede cubrir esto.
+            }
+            is AuthAndRoleUiState.Idle -> {
+                Log.d("LoginScreen", "State is Idle.")
+                // Estado inicial o después de un reset o logout.
+            }
         }
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Sección superior con fondo negro sólido para el logo y bienvenida
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(0.35f) // Un poco menos de peso para el registro, más espacio para el form
+                .weight(0.4f)
                 .background(colorNegro),
             contentAlignment = Alignment.Center
         ) {
@@ -97,35 +109,31 @@ fun RegisterScreen(
                     painter = painterResource(id = R.drawable.logo_totalhealth),
                     contentDescription = "Logo de Total Health",
                     modifier = Modifier
-                        .size(80.dp) // Un poco más pequeño para el registro
+                        .size(100.dp)
                         .padding(bottom = 16.dp),
                     contentScale = ContentScale.Fit
                 )
                 Text(
-                    text = "Crea tu Cuenta",
+                    text = "Bienvenido a Total Health",
                     style = MaterialTheme.typography.headlineSmall,
                     color = Color.White,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Únete a Total Health",
+                    text = "Inicia sesión para continuar",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.White.copy(alpha = 0.7f),
                 )
             }
         }
 
-        // Sección inferior con degradado y tarjeta de registro
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(0.65f) // Más peso para el formulario
+                .weight(0.6f)
                 .background(
                     brush = Brush.verticalGradient(
-                        colors = listOf(
-                            colorNegro,
-                            colorVerdeOscuroDegradado
-                        )
+                        colors = listOf(colorNegro, colorVerdeOscuroDegradado)
                     )
                 )
                 .padding(start = 32.dp, end = 32.dp, top = 16.dp, bottom = 16.dp),
@@ -162,7 +170,8 @@ fun RegisterScreen(
                                 imeAction = ImeAction.Next
                             ),
                             singleLine = true,
-                            enabled = uiState != AuthUiState.Loading,
+                            // Corrección: Comprobar estados de carga de AuthAndRoleUiState
+                            enabled = authState !is AuthAndRoleUiState.AuthLoading && authState !is AuthAndRoleUiState.RoleLoading,
                             shape = RoundedCornerShape(12.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = colorVerdePrincipal,
@@ -185,7 +194,7 @@ fun RegisterScreen(
                         OutlinedTextField(
                             value = password,
                             onValueChange = { authViewModel.onPasswordChange(it) },
-                            label = { Text("Contraseña (mín. 6 caracteres)") },
+                            label = { Text("Contraseña") },
                             modifier = Modifier.fillMaxWidth(),
                             leadingIcon = {
                                 Icon(
@@ -202,7 +211,7 @@ fun RegisterScreen(
                                 onDone = {
                                     focusManager.clearFocus()
                                     if (email.isNotBlank() && password.isNotBlank()) {
-                                        authViewModel.registerUser()
+                                        authViewModel.loginUser()
                                     }
                                 }
                             ),
@@ -214,7 +223,8 @@ fun RegisterScreen(
                                 }
                             },
                             singleLine = true,
-                            enabled = uiState != AuthUiState.Loading,
+                            // Corrección: Comprobar estados de carga de AuthAndRoleUiState
+                            enabled = authState !is AuthAndRoleUiState.AuthLoading && authState !is AuthAndRoleUiState.RoleLoading,
                             shape = RoundedCornerShape(12.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = colorVerdePrincipal,
@@ -226,13 +236,13 @@ fun RegisterScreen(
                                 unfocusedTextColor = Color.White.copy(alpha = 0.9f),
                                 focusedLeadingIconColor = colorVerdePrincipal,
                                 unfocusedLeadingIconColor = Color.White.copy(alpha = 0.7f),
-                                focusedTrailingIconColor = colorVerdePrincipal,
-                                unfocusedTrailingIconColor = Color.White.copy(alpha = 0.7f),
+                                focusedTrailingIconColor = colorVerdePrincipal, // Añadido para consistencia
+                                unfocusedTrailingIconColor = Color.White.copy(alpha = 0.7f), // Añadido para consistencia
                                 disabledTextColor = Color.Gray,
                                 disabledBorderColor = Color.DarkGray,
                                 disabledLabelColor = Color.Gray,
                                 disabledLeadingIconColor = Color.Gray,
-                                disabledTrailingIconColor = Color.Gray
+                                disabledTrailingIconColor = Color.Gray // Añadido para consistencia
                             )
                         )
                         Spacer(modifier = Modifier.height(32.dp))
@@ -240,25 +250,30 @@ fun RegisterScreen(
                         Button(
                             onClick = {
                                 focusManager.clearFocus()
-                                authViewModel.registerUser()
+                                authViewModel.loginUser()
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp),
-                            enabled = uiState != AuthUiState.Loading,
+                            // Corrección: Comprobar estados de carga de AuthAndRoleUiState
+                            enabled = authState !is AuthAndRoleUiState.AuthLoading && authState !is AuthAndRoleUiState.RoleLoading,
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = colorVerdePrincipal,
-                                contentColor = Color.White
+                                contentColor = Color.White,
+                                disabledContainerColor = colorVerdePrincipal.copy(alpha = 0.5f), // Estilo para deshabilitado
+                                disabledContentColor = Color.White.copy(alpha = 0.7f)
                             )
                         ) {
-                            if (uiState == AuthUiState.Loading) {
+                            // Corrección: Mostrar indicador si está en AuthLoading o RoleLoading
+                            if (authState is AuthAndRoleUiState.AuthLoading || authState is AuthAndRoleUiState.RoleLoading) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(24.dp),
-                                    color = Color.White
+                                    color = Color.White,
+                                    strokeWidth = 2.dp // Opcional: ajustar grosor
                                 )
                             } else {
-                                Text("Registrarse", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                                Text("Entrar", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }
@@ -269,15 +284,13 @@ fun RegisterScreen(
                 TextButton(
                     onClick = {
                         authViewModel.clearFields()
-                        authViewModel.resetState()
-                        navController.navigate("login") {
-                            popUpTo("register") { inclusive = true }
-                            launchSingleTop = true
-                        }
+                        authViewModel.resetState() // Vuelve a Idle antes de navegar
+                        navController.navigate("register")
                     },
-                    enabled = uiState != AuthUiState.Loading
+                    // Corrección: Comprobar estados de carga de AuthAndRoleUiState
+                    enabled = authState !is AuthAndRoleUiState.AuthLoading && authState !is AuthAndRoleUiState.RoleLoading
                 ) {
-                    Text("¿Ya tienes cuenta? Inicia sesión", color = Color.White.copy(alpha = 0.9f))
+                    Text("¿No tienes cuenta? Regístrate aquí", color = Color.White.copy(alpha = 0.9f))
                 }
                 Spacer(modifier = Modifier.height(16.dp))
             }

@@ -11,7 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp // Importación corregida
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.EditNote
@@ -38,43 +38,66 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import auth.AuthViewModel
 import coil.compose.rememberAsyncImagePainter
 import com.miempresa.totalhealth.R
-// Imports para la Frase Semanal
-import com.miempresa.totalhealth.content.`WeeklyPhrase.kt`
-import com.miempresa.totalhealth.content.WeeklyPhraseViewModel
-import com.miempresa.totalhealth.content.WeeklyPhraseUiState
-// Imports para el Libro del Día/Mes
 import com.miempresa.totalhealth.content.DailyBook
-import com.miempresa.totalhealth.content.DailyBookViewModel
 import com.miempresa.totalhealth.content.DailyBookUiState
+import com.miempresa.totalhealth.content.DailyBookViewModel
+import com.miempresa.totalhealth.content.WeeklyPhrase // Asegúrate que esta importación es correcta (después de renombrar WeeklyPhrase.kt.kt)
+import com.miempresa.totalhealth.content.WeeklyPhraseUiState
+import com.miempresa.totalhealth.content.WeeklyPhraseViewModel
+
+// Corrección: Asegurar la importación de AuthViewModel del paquete auth
+import com.miempresa.totalhealth.auth.AuthViewModel
+// Si AuthViewModel estuviera en un subpaquete de com.miempresa.totalhealth, por ejemplo:
+// import com.miempresa.totalhealth.auth.AuthViewModel // <- Ajusta esto si tu paquete 'auth' está en otra ubicación
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     navController: NavController,
+    // Corrección: Especificar el tipo AuthViewModel correctamente.
+    // La referencia a 'auth' en el error anterior (línea 41) podría ser por un intento de
+    // authViewModel: auth.AuthViewModel = viewModel(), lo cual es redundante si ya está importado.
     authViewModel: AuthViewModel = viewModel(),
     weeklyPhraseViewModel: WeeklyPhraseViewModel = viewModel(),
     dailyBookViewModel: DailyBookViewModel = viewModel()
 ) {
+    // Corrección: Obtener currentUser de authViewModel.
+    // El error en la línea 62 "Unresolved reference getCurrentUser" indica que authViewModel no se resuelve bien.
     val currentUser = authViewModel.getCurrentUser()
     val context = LocalContext.current
     Log.d("HomeScreen", "Composing HomeScreen. Current user: ${currentUser?.email}")
 
     var showPhraseDialog by remember { mutableStateOf(false) }
-    var currentPhraseToShow by remember { mutableStateOf<`WeeklyPhrase.kt`?>(null) }
+    var currentPhraseToShow by remember { mutableStateOf<WeeklyPhrase?>(null) }
+    // Corrección: Acceder a uiState directamente si es un State<T> de Compose
     val weeklyPhraseState by weeklyPhraseViewModel.uiState
 
     var showBookDialog by remember { mutableStateOf(false) }
     var currentBookToShow by remember { mutableStateOf<DailyBook?>(null) }
+    // Corrección: Acceder a uiState directamente si es un State<T> de Compose
     val dailyBookState by dailyBookViewModel.uiState
 
     val colorNegro = Color.Black
     val colorVerdePrincipal = Color(0xFF00897B)
     val colorVerdeOscuroDegradado = Color(0xFF004D40)
 
+    // Efecto para observar cambios en currentUser y redirigir si es nulo
+    LaunchedEffect(currentUser) {
+        if (currentUser == null) {
+            Log.d("HomeScreen", "currentUser is null, navigating to login.")
+            // Navegar a login y limpiar el backstack para que el usuario no pueda volver a HomeScreen con el botón "atrás"
+            navController.navigate("login") {
+                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+    }
+
     if (currentUser == null) {
+        // Muestra un indicador de carga o una pantalla vacía mientras se redirige.
+        // Esto evita intentar acceder a currentUser.email más adelante si es nulo.
         Log.d("HomeScreen", "Current user IS NULL. Displaying loading indicator or waiting for redirect.")
         Box(
             modifier = Modifier
@@ -84,7 +107,7 @@ fun HomeScreen(
         ) {
             CircularProgressIndicator(color = colorVerdePrincipal)
         }
-        return
+        return // Importante: No continuar si el usuario es nulo.
     }
 
     // Diálogo para mostrar la frase completa
@@ -241,8 +264,10 @@ fun HomeScreen(
                 actions = {
                     IconButton(onClick = {
                         Log.d("HomeScreen", "Logout button clicked.")
+                        // Corrección: Llamar a authViewModel.logoutUser()
                         authViewModel.logoutUser()
                         Toast.makeText(context, "Cerrando sesión...", Toast.LENGTH_SHORT).show()
+                        // La navegación a login debería ser manejada por el LaunchedEffect que observa currentUser
                     }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ExitToApp,
@@ -275,6 +300,8 @@ fun HomeScreen(
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
+            // Corrección: currentUser ya se verificó que no es nulo.
+            // El error "Unresolved reference email" en línea 293 sugiere que currentUser.email no se resolvía bien.
             Text(
                 text = "¡Hola, ${currentUser.email?.substringBefore('@') ?: "Usuario"}!",
                 style = MaterialTheme.typography.headlineMedium,
@@ -288,17 +315,15 @@ fun HomeScreen(
                 modifier = Modifier.padding(bottom = 24.dp)
             )
 
-            // --- MODIFICACIÓN AQUÍ ---
             FeatureCard(
                 title = "Mi Progreso",
                 description = "Visualiza tu avance físico y mental.",
                 icon = Icons.Filled.Assessment,
                 onClick = {
                     Log.d("HomeScreen", "Navigating to progress_screen.")
-                    navController.navigate("progress_screen") // Navegar a la pantalla de progreso
+                    navController.navigate("progress_screen")
                 }
             )
-            // --- FIN DE MODIFICACIÓN ---
             Spacer(modifier = Modifier.height(16.dp))
 
             FeatureCard(
@@ -316,12 +341,11 @@ fun HomeScreen(
                 title = "Diario de Mejoras",
                 description = "Reflexiona sobre tus logros y metas.",
                 icon = Icons.Filled.EditNote,
-                onClick = { /* TODO: Navegar a pantalla de Diario de Mejoras */ }
+                onClick = { navController.navigate("improvements_journal_screen") } // TODO: Implementar
             )
             Spacer(modifier = Modifier.height(16.dp))
 
             Row(Modifier.fillMaxWidth()) {
-                // Tarjeta para Frase Semanal
                 when (val state = weeklyPhraseState) {
                     is WeeklyPhraseUiState.Success -> {
                         FeatureCardSmall(
@@ -352,7 +376,6 @@ fun HomeScreen(
                     }
                 }
                 Spacer(modifier = Modifier.width(16.dp))
-                // Tarjeta Libro del Mes/Día actualizada
                 when (val state = dailyBookState) {
                     is DailyBookUiState.Success -> {
                         FeatureCardSmall(
@@ -396,7 +419,7 @@ fun HomeScreen(
                 title = "Ajustes",
                 description = "Configura tu perfil y preferencias.",
                 icon = Icons.Filled.Settings,
-                onClick = { /* TODO: Navegar a pantalla de Ajustes */ }
+                onClick = { navController.navigate("settings_screen") } // TODO: Implementar
             )
 
             Spacer(modifier = Modifier.weight(1f))

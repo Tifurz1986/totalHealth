@@ -20,11 +20,11 @@ import com.miempresa.totalhealth.foodreport.FoodReportScreen
 import com.miempresa.totalhealth.progress.ProgressScreen
 import com.miempresa.totalhealth.settings.SettingsScreen
 // Imports desde el paquete UI
-import auth.AuthAndRoleUiState
-import auth.AuthViewModel
-import auth.LoginScreen
-import auth.RegisterScreen
-import auth.UserRole
+import com.miempresa.totalhealth.auth.AuthAndRoleUiState
+import com.miempresa.totalhealth.auth.AuthViewModel
+import com.miempresa.totalhealth.auth.LoginScreen
+import com.miempresa.totalhealth.auth.RegisterScreen
+import com.miempresa.totalhealth.auth.UserRole
 import com.miempresa.totalhealth.ui.HomeScreen
 // import com.miempresa.totalhealth.admin.AdminHomeScreen // A crear en el futuro
 

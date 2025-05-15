@@ -5,8 +5,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import auth.LoginScreen
-import auth.RegisterScreen
+import com.miempresa.totalhealth.auth.LoginScreen
+import com.miempresa.totalhealth.auth.RegisterScreen
 import com.miempresa.totalhealth.ui.HomeScreen
 
 @Composable

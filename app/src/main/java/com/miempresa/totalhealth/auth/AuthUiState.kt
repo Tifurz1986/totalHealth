@@ -1,4 +1,4 @@
-package auth
+package com.miempresa.totalhealth.auth
 
 // Estados de la UI para el flujo de autenticación
 sealed class AuthUiState {
