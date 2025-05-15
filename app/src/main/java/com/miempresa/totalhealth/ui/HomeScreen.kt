@@ -4,7 +4,8 @@ import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable // Importación necesaria
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -18,9 +19,10 @@ import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.RestaurantMenu
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue // Esencial para la delegación 'by' con State
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,57 +39,61 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import androidx.lifecycle.viewmodel.compose.viewModel // Para obtener ViewModels
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.miempresa.totalhealth.R
-import com.miempresa.totalhealth.content.DailyBook // Asegúrate que estas clases de datos estén definidas
+import com.miempresa.totalhealth.content.DailyBook
 import com.miempresa.totalhealth.content.DailyBookUiState
 import com.miempresa.totalhealth.content.DailyBookViewModel
-import com.miempresa.totalhealth.content.WeeklyPhrase // Asegúrate que estas clases de datos estén definidas
+import com.miempresa.totalhealth.content.WeeklyPhrase
 import com.miempresa.totalhealth.content.WeeklyPhraseUiState
 import com.miempresa.totalhealth.content.WeeklyPhraseViewModel
-import com.miempresa.totalhealth.auth.AuthViewModel // ViewModel de autenticación
+import com.miempresa.totalhealth.auth.AuthViewModel
+import com.miempresa.totalhealth.auth.UserProfileUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    navController: NavController,
+    navController: NavController, // NavController para la navegación
     authViewModel: AuthViewModel = viewModel(),
     weeklyPhraseViewModel: WeeklyPhraseViewModel = viewModel(),
     dailyBookViewModel: DailyBookViewModel = viewModel()
 ) {
     val currentUser = authViewModel.getCurrentUser()
+    val userProfileState by authViewModel.userProfileUiState.collectAsState()
     val context = LocalContext.current
-    Log.d("HomeScreen", "Composing HomeScreen. Current user: ${currentUser?.email}")
+
+    LaunchedEffect(key1 = currentUser?.uid) {
+        val uid = currentUser?.uid
+        if (uid != null && uid.isNotBlank()) {
+            if (userProfileState is UserProfileUiState.Idle || userProfileState is UserProfileUiState.Error) {
+                Log.d("HomeScreen", "Attempting to load user profile for UID: $uid because current profile state is $userProfileState")
+                authViewModel.loadUserProfile(uid)
+            }
+        }
+    }
+
+    Log.d("HomeScreen", "Composing HomeScreen. Current user: ${currentUser?.email}, ProfileState: $userProfileState")
 
     var showPhraseDialog by remember { mutableStateOf(false) }
     var currentPhraseToShow by remember { mutableStateOf<WeeklyPhrase?>(null) }
-    // Corrección: Ahora se usa collectAsState() porque los ViewModels exponen StateFlow
     val weeklyPhraseState by weeklyPhraseViewModel.uiState.collectAsState()
 
     var showBookDialog by remember { mutableStateOf(false) }
     var currentBookToShow by remember { mutableStateOf<DailyBook?>(null) }
-    // Corrección: Ahora se usa collectAsState()
     val dailyBookState by dailyBookViewModel.uiState.collectAsState()
 
     val colorNegro = Color.Black
     val colorVerdePrincipal = Color(0xFF00897B)
     val colorVerdeOscuroDegradado = Color(0xFF004D40)
 
-    // AppNavigation se encarga de la redirección si currentUser es null.
-    // Esta comprobación es una salvaguarda para esta pantalla específica.
     if (currentUser == null) {
-        Log.d("HomeScreen", "Current user IS NULL. Displaying loading/empty or waiting for AppNavigation redirect.")
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(colorNegro),
-            contentAlignment = Alignment.Center
-        ) {
+        Log.d("HomeScreen", "Current user IS NULL. AppNavigation should handle redirect.")
+        Box(modifier = Modifier.fillMaxSize().background(colorNegro), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = colorVerdePrincipal)
         }
-        return // No renderizar el resto si no hay usuario.
+        return
     }
 
     // Diálogo para mostrar la frase completa
@@ -195,20 +201,59 @@ fun HomeScreen(
             CenterAlignedTopAppBar(
                 title = { Text("Total Health", fontWeight = FontWeight.Bold, color = Color.White) },
                 navigationIcon = {
-                    Image(
-                        painter = painterResource(id = R.drawable.logo_totalhealth),
-                        contentDescription = "Logo App",
-                        modifier = Modifier.padding(start = 12.dp).size(32.dp).clip(CircleShape)
-                    )
+                    // Envolver la imagen/icono del perfil con IconButton para hacerlo clicable
+                    IconButton(onClick = {
+                        Log.d("HomeScreen", "Profile icon in TopAppBar clicked. Navigating to edit_profile_screen.")
+                        navController.navigate("edit_profile_screen")
+                    }) {
+                        when (val state = userProfileState) {
+                            is UserProfileUiState.Success -> {
+                                if (!state.profile.profilePictureUrl.isNullOrBlank()) {
+                                    Image(
+                                        painter = rememberAsyncImagePainter(model = state.profile.profilePictureUrl),
+                                        contentDescription = "Foto de Perfil (Editar)", // Actualizar descripción
+                                        modifier = Modifier
+                                            // El padding se maneja mejor en el IconButton o Box contenedor si es necesario
+                                            .size(36.dp)
+                                            .clip(CircleShape)
+                                            .border(1.dp, Color.White.copy(alpha = 0.5f), CircleShape),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Filled.AccountCircle,
+                                        contentDescription = "Editar Perfil", // Actualizar descripción
+                                        tint = Color.White,
+                                        modifier = Modifier.size(36.dp)
+                                    )
+                                }
+                            }
+                            is UserProfileUiState.Loading, is UserProfileUiState.Idle -> {
+                                Icon(
+                                    imageVector = Icons.Filled.AccountCircle,
+                                    contentDescription = "Editar Perfil",
+                                    tint = Color.White.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(36.dp)
+                                )
+                            }
+                            is UserProfileUiState.Error -> {
+                                Icon(
+                                    imageVector = Icons.Filled.AccountCircle,
+                                    contentDescription = "Error Perfil (Editar)",
+                                    tint = Color.Red.copy(alpha = 0.8f),
+                                    modifier = Modifier.size(36.dp)
+                                )
+                            }
+                        }
+                    }
                 },
                 actions = {
                     IconButton(onClick = {
                         Log.d("HomeScreen", "Logout button clicked.")
                         authViewModel.logoutUser()
                         Toast.makeText(context, "Cerrando sesión...", Toast.LENGTH_SHORT).show()
-                        // La navegación a login será manejada por AppNavigation
                     }) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Cerrar Sesión", tint = Color.White)
+                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Cerrar Sesión", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = colorNegro)
@@ -220,14 +265,16 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(
-                    brush = Brush.verticalGradient(colors = listOf(colorNegro, colorVerdeOscuroDegradado))
-                )
+                .background(brush = Brush.verticalGradient(colors = listOf(colorNegro, colorVerdeOscuroDegradado)))
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
+            val displayName = when (val state = userProfileState) {
+                is UserProfileUiState.Success -> state.profile.name.ifBlank { currentUser.email?.substringBefore('@') ?: "Usuario" }
+                else -> currentUser.email?.substringBefore('@') ?: "Usuario"
+            }
             Text(
-                text = "¡Hola, ${currentUser.email?.substringBefore('@') ?: "Usuario"}!",
+                text = "¡Hola, $displayName!",
                 style = MaterialTheme.typography.headlineMedium,
                 color = Color.White,
                 modifier = Modifier.padding(bottom = 8.dp)
@@ -316,7 +363,6 @@ fun HomeScreen(
     }
 }
 
-// FeatureCard y FeatureCardSmall se mantienen igual, ya que parecen correctos.
 @Composable
 fun FeatureCard(title: String, description: String, icon: ImageVector, onClick: () -> Unit) {
     val colorVerdePrincipal = Color(0xFF00897B)
