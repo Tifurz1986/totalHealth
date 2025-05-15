@@ -13,7 +13,7 @@ import java.util.Date
 // Estado para la UI de la frase semanal
 sealed class WeeklyPhraseUiState {
     object Loading : WeeklyPhraseUiState()
-    data class Success(val phrase: WeeklyPhrase) : WeeklyPhraseUiState()
+    data class Success(val phrase: `WeeklyPhrase.kt`) : WeeklyPhraseUiState()
     object Error : WeeklyPhraseUiState()
     object Empty : WeeklyPhraseUiState()
 }
@@ -160,7 +160,7 @@ class WeeklyPhraseViewModel : ViewModel() {
 
                 if (finalIndex >= 0 && finalIndex < motivationalPhrasesList.size) {
                     val selectedPhraseData = motivationalPhrasesList[finalIndex]
-                    val weeklyPhraseObject = WeeklyPhrase(
+                    val weeklyPhraseObject = `WeeklyPhrase.kt`(
                         id = "phrase_${currentYear}_$currentWeekOfYear",
                         weekNumber = currentWeekOfYear,
                         phrase = selectedPhraseData.first,

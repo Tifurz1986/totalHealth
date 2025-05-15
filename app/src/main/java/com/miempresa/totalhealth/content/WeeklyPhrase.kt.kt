@@ -4,7 +4,7 @@ import com.google.firebase.firestore.PropertyName
 import com.google.firebase.firestore.ServerTimestamp
 import java.util.Date
 
-data class WeeklyPhrase(
+data class `WeeklyPhrase.kt`(
     var id: String = "",
     @get:PropertyName("weekNumber") @set:PropertyName("weekNumber") var weekNumber: Int = 0,
     @get:PropertyName("phrase") @set:PropertyName("phrase") var phrase: String = "",

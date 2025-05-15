@@ -42,7 +42,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.miempresa.totalhealth.R
 import com.miempresa.totalhealth.ui.AuthViewModel
 // Imports para la Frase Semanal
-import com.miempresa.totalhealth.content.WeeklyPhrase
+import com.miempresa.totalhealth.content.`WeeklyPhrase.kt`
 import com.miempresa.totalhealth.content.WeeklyPhraseViewModel
 import com.miempresa.totalhealth.content.WeeklyPhraseUiState
 // Imports para el Libro del Día/Mes
@@ -63,7 +63,7 @@ fun HomeScreen(
     Log.d("HomeScreen", "Composing HomeScreen. Current user: ${currentUser?.email}")
 
     var showPhraseDialog by remember { mutableStateOf(false) }
-    var currentPhraseToShow by remember { mutableStateOf<WeeklyPhrase?>(null) }
+    var currentPhraseToShow by remember { mutableStateOf<`WeeklyPhrase.kt`?>(null) }
     val weeklyPhraseState by weeklyPhraseViewModel.uiState
 
     var showBookDialog by remember { mutableStateOf(false) }
