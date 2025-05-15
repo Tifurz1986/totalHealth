@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "921809859689",
+    "project_id": "totalhealth-b4825",
+    "storage_bucket": "totalhealth-b4825.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:921809859689:android:417ef1b8e375bbd9975ef8",
+        "android_client_info": {
+          "package_name": "com.miempresa.totalhealth"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCgK-DqFgP8RfYqtZUXa_f3N32giwkJB6A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
