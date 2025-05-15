@@ -5,8 +5,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.miempresa.totalhealth.ui.*
-import com.miempresa.totalhealth.ui.menu.HomeScreen
+import auth.LoginScreen
+import auth.RegisterScreen
+import com.miempresa.totalhealth.ui.HomeScreen
 
 @Composable
 fun NavGraph(navController: NavHostController = rememberNavController()) {

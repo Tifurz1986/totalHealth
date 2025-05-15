@@ -1,4 +1,4 @@
-package com.miempresa.totalhealth.ui // Asegúrate que este sea el paquete
+package auth // Asegúrate que este sea el paquete
 
 import android.util.Log
 import androidx.compose.runtime.State
@@ -81,7 +81,8 @@ class AuthViewModel : ViewModel() {
 
     fun registerUser() {
         if (email.value.isBlank() || password.value.isBlank()) {
-            _authAndRoleUiState.value = AuthAndRoleUiState.Error("El email y la contraseña no pueden estar vacíos.")
+            _authAndRoleUiState.value =
+                AuthAndRoleUiState.Error("El email y la contraseña no pueden estar vacíos.")
             return
         }
 
@@ -99,27 +100,34 @@ class AuthViewModel : ViewModel() {
                     db.collection("users").document(firebaseUser.uid).set(userProfile).await()
                     Log.d("AuthViewModel", "User profile created in Firestore for ${firebaseUser.uid}")
                     // Después de registrar y crear perfil, el estado podría ser Authenticated con rol USER
-                    _authAndRoleUiState.value = AuthAndRoleUiState.Authenticated(firebaseUser, UserRole.USER)
+                    _authAndRoleUiState.value =
+                        AuthAndRoleUiState.Authenticated(firebaseUser, UserRole.USER)
                 } else {
-                    _authAndRoleUiState.value = AuthAndRoleUiState.Error("Error al crear el usuario.")
+                    _authAndRoleUiState.value =
+                        AuthAndRoleUiState.Error("Error al crear el usuario.")
                 }
                 clearFields()
             } catch (e: FirebaseAuthWeakPasswordException) {
-                _authAndRoleUiState.value = AuthAndRoleUiState.Error("La contraseña es débil (mínimo 6 caracteres).")
+                _authAndRoleUiState.value =
+                    AuthAndRoleUiState.Error("La contraseña es débil (mínimo 6 caracteres).")
             } catch (e: FirebaseAuthInvalidCredentialsException) {
-                _authAndRoleUiState.value = AuthAndRoleUiState.Error("El formato del email no es válido.")
+                _authAndRoleUiState.value =
+                    AuthAndRoleUiState.Error("El formato del email no es válido.")
             } catch (e: FirebaseAuthUserCollisionException) {
-                _authAndRoleUiState.value = AuthAndRoleUiState.Error("Este email ya está registrado.")
+                _authAndRoleUiState.value =
+                    AuthAndRoleUiState.Error("Este email ya está registrado.")
             } catch (e: Exception) {
                 Log.e("AuthViewModel", "Error during registration: ${e.message}", e)
-                _authAndRoleUiState.value = AuthAndRoleUiState.Error("Error desconocido registro: ${e.localizedMessage}")
+                _authAndRoleUiState.value =
+                    AuthAndRoleUiState.Error("Error desconocido registro: ${e.localizedMessage}")
             }
         }
     }
 
     fun loginUser() {
         if (email.value.isBlank() || password.value.isBlank()) {
-            _authAndRoleUiState.value = AuthAndRoleUiState.Error("El email y la contraseña no pueden estar vacíos.")
+            _authAndRoleUiState.value =
+                AuthAndRoleUiState.Error("El email y la contraseña no pueden estar vacíos.")
             return
         }
 
@@ -137,7 +145,8 @@ class AuthViewModel : ViewModel() {
                 _authAndRoleUiState.value = AuthAndRoleUiState.Error("Credenciales inválidas.")
             } catch (e: Exception) {
                 Log.e("AuthViewModel", "Error during login: ${e.message}", e)
-                _authAndRoleUiState.value = AuthAndRoleUiState.Error("Error desconocido login: ${e.localizedMessage}")
+                _authAndRoleUiState.value =
+                    AuthAndRoleUiState.Error("Error desconocido login: ${e.localizedMessage}")
             }
         }
     }
@@ -162,7 +171,8 @@ class AuthViewModel : ViewModel() {
                 _authAndRoleUiState.value = AuthAndRoleUiState.Authenticated(firebaseUser, role)
             } catch (e: Exception) {
                 Log.e("AuthViewModel", "Error fetching user role: ${e.message}", e)
-                _authAndRoleUiState.value = AuthAndRoleUiState.Authenticated(firebaseUser, UserRole.USER) // Fallback
+                _authAndRoleUiState.value =
+                    AuthAndRoleUiState.Authenticated(firebaseUser, UserRole.USER) // Fallback
             }
         }
     }
@@ -174,14 +184,16 @@ class AuthViewModel : ViewModel() {
                 _authAndRoleUiState.value = AuthAndRoleUiState.Idle
                 clearFields()
             } catch (e: Exception) {
-                _authAndRoleUiState.value = AuthAndRoleUiState.Error("Error al cerrar sesión: ${e.localizedMessage}")
+                _authAndRoleUiState.value =
+                    AuthAndRoleUiState.Error("Error al cerrar sesión: ${e.localizedMessage}")
             }
         }
     }
 
     fun resetState() {
         if (_authAndRoleUiState.value is AuthAndRoleUiState.Error ||
-            _authAndRoleUiState.value is AuthAndRoleUiState.Authenticated) {
+            _authAndRoleUiState.value is AuthAndRoleUiState.Authenticated
+        ) {
             _authAndRoleUiState.value = AuthAndRoleUiState.Idle
         }
     }

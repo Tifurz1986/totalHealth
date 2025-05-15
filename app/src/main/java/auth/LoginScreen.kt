@@ -1,4 +1,4 @@
-package com.miempresa.totalhealth.ui
+package auth
 
 import android.util.Log
 import android.widget.Toast

@@ -1,4 +1,4 @@
-package com.miempresa.totalhealth.ui
+package auth
 
 import android.util.Log
 import android.widget.Toast
@@ -35,7 +35,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.miempresa.totalhealth.R
-import kotlinx.coroutines.delay
 
 @Composable
 fun RegisterScreen(

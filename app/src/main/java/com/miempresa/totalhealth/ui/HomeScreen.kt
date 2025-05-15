@@ -1,4 +1,4 @@
-package com.miempresa.totalhealth.ui.menu
+package com.miempresa.totalhealth.ui
 
 import android.util.Log
 import android.widget.Toast
@@ -38,9 +38,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import auth.AuthViewModel
 import coil.compose.rememberAsyncImagePainter
 import com.miempresa.totalhealth.R
-import com.miempresa.totalhealth.ui.AuthViewModel
 // Imports para la Frase Semanal
 import com.miempresa.totalhealth.content.`WeeklyPhrase.kt`
 import com.miempresa.totalhealth.content.WeeklyPhraseViewModel
