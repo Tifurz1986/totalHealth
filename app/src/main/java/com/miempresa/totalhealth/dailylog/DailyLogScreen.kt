@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.miempresa.totalhealth.auth.AuthViewModel
+import com.miempresa.totalhealth.common.InteractiveStarRatingInput // Importar el nuevo Composable
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -40,7 +41,7 @@ import java.util.Locale
 fun dailyLogTextFieldColors(
     textColor: Color = Color.White.copy(alpha = 0.9f),
     disabledTextColor: Color = Color.Gray,
-    cursorColor: Color = Color(0xFF00897B), // colorVerdePrincipal
+    cursorColor: Color = Color(0xFF00897B),
     focusedBorderColor: Color = Color(0xFF00897B),
     unfocusedBorderColor: Color = Color.White.copy(alpha = 0.5f),
     disabledBorderColor: Color = Color.DarkGray,
@@ -69,7 +70,6 @@ fun dailyLogTextFieldColors(
     focusedPlaceholderColor = placeholderColor,
     unfocusedPlaceholderColor = placeholderColor,
     disabledPlaceholderColor = disabledPlaceholderColor
-    // Puedes añadir trailingIconColor si lo usas
 )
 
 
@@ -88,8 +88,9 @@ fun DailyLogScreen(
     var selectedDate by remember { mutableStateOf(dailyLogViewModel.getTodayDate()) }
     var foodEntries by remember { mutableStateOf(listOf(FoodEntry())) }
     var mood by remember { mutableStateOf("") }
-    var moodIntensity by remember { mutableStateOf<Int?>(null) }
-    var moodIntensityString by remember { mutableStateOf("") }
+    // moodIntensity ahora será un Int de 0 a 5 (0 para no seleccionado, 1-5 para estrellas)
+    var moodIntensity by remember { mutableStateOf(0) }
+    // moodIntensityString ya no es necesario
     var journalEntry by remember { mutableStateOf("") }
     var sleepTimeToBedString by remember { mutableStateOf("") }
     var sleepTimeWokeUpString by remember { mutableStateOf("") }
@@ -114,8 +115,7 @@ fun DailyLogScreen(
                 if (log != null) {
                     foodEntries = if (log.foodEntries.isNotEmpty()) log.foodEntries else listOf(FoodEntry())
                     mood = log.emotionEntry?.mood ?: ""
-                    moodIntensityString = log.emotionEntry?.moodIntensity?.toString() ?: ""
-                    moodIntensity = log.emotionEntry?.moodIntensity
+                    moodIntensity = log.emotionEntry?.moodIntensity ?: 0 // Cargar intensidad (0 si es null)
                     journalEntry = log.emotionEntry?.journalEntry ?: ""
                     sleepTimeToBedString = log.sleepEntry?.timeToBed?.let { SimpleDateFormat("HH:mm", Locale.getDefault()).format(it) } ?: ""
                     sleepTimeWokeUpString = log.sleepEntry?.timeWokeUp?.let { SimpleDateFormat("HH:mm", Locale.getDefault()).format(it) } ?: ""
@@ -124,10 +124,10 @@ fun DailyLogScreen(
                     waterIntakeString = log.waterIntakeLiters?.toString() ?: ""
                     generalNotes = log.notes
                 } else {
+                    // Resetear campos si no hay log para la fecha
                     foodEntries = listOf(FoodEntry())
                     mood = ""
-                    moodIntensityString = ""
-                    moodIntensity = null
+                    moodIntensity = 0 // Resetear intensidad a 0
                     journalEntry = ""
                     sleepTimeToBedString = ""
                     sleepTimeWokeUpString = ""
@@ -163,11 +163,12 @@ fun DailyLogScreen(
             selectedDate = newDateCalendar.time
         }, year, month, day
     )
+    // datePickerDialog.datePicker.maxDate = System.currentTimeMillis() // Opcional: limitar fechas futuras
 
     val colorNegro = Color.Black
     val colorVerdePrincipal = Color(0xFF00897B)
     val colorVerdeOscuroDegradado = Color(0xFF004D40)
-    val textFieldColors = dailyLogTextFieldColors() // Usar los colores definidos
+    val textFieldColors = dailyLogTextFieldColors()
 
     Scaffold(
         topBar = {
@@ -221,7 +222,7 @@ fun DailyLogScreen(
                         else foodEntries = listOf(FoodEntry())
                     },
                     showRemoveButton = foodEntries.size > 1,
-                    textFieldColors = textFieldColors // Aplicar colores
+                    textFieldColors = textFieldColors
                 )
             }
             Button(onClick = { foodEntries = foodEntries + FoodEntry() }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
@@ -232,15 +233,44 @@ fun DailyLogScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             SectionTitle("Estado de Ánimo y Diario")
-            OutlinedTextField(value = mood, onValueChange = { mood = it }, label = { Text("¿Cómo te sientes?") }, leadingIcon = { Icon(Icons.Filled.SentimentSatisfied, "Mood")}, modifier = Modifier.fillMaxWidth(), colors = textFieldColors)
-            OutlinedTextField(value = moodIntensityString, onValueChange = { moodIntensityString = it.filter {c -> c.isDigit() }.take(1); moodIntensity = it.toIntOrNull()?.coerceIn(1,5) }, label = { Text("Intensidad (1-5)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth().padding(top=8.dp), colors = textFieldColors)
-            OutlinedTextField(value = journalEntry, onValueChange = { journalEntry = it }, label = { Text("Notas del diario / Reflexión") }, leadingIcon = { Icon(Icons.Filled.Book, "Journal")}, modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp).padding(top=8.dp), colors = textFieldColors)
+            OutlinedTextField(
+                value = mood,
+                onValueChange = { mood = it },
+                label = { Text("¿Cómo te sientes? (Ej: Feliz, Estresado)") },
+                leadingIcon = { Icon(Icons.Filled.SentimentSatisfied, "Mood")},
+                modifier = Modifier.fillMaxWidth(),
+                colors = textFieldColors
+            )
+
+            // NUEVO: InteractiveStarRatingInput para Nivel de Ánimo
+            Text(
+                text = "Nivel de Ánimo:",
+                color = Color.White.copy(alpha = 0.9f),
+                style = MaterialTheme.typography.labelLarge, // Usar labelLarge o titleSmall
+                modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+            )
+            InteractiveStarRatingInput(
+                currentRating = moodIntensity, // Usa el estado Int
+                onRatingChange = { newRating -> moodIntensity = newRating }, // Actualiza el estado Int
+                modifier = Modifier.align(Alignment.CenterHorizontally), // Centrar las estrellas
+                starSize = 40.dp // Estrellas un poco más grandes para mejor toque
+            )
+            // El OutlinedTextField para moodIntensityString se ha eliminado.
+
+            OutlinedTextField(
+                value = journalEntry,
+                onValueChange = { journalEntry = it },
+                label = { Text("Notas del diario / Reflexión") },
+                leadingIcon = { Icon(Icons.Filled.Book, "Journal")},
+                modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp).padding(top=16.dp), // Aumentado padding top
+                colors = textFieldColors
+            )
             Spacer(modifier = Modifier.height(16.dp))
 
             SectionTitle("Sueño")
             OutlinedTextField(value = sleepTimeToBedString, onValueChange = { sleepTimeToBedString = it }, label = { Text("Hora de acostarse (HH:mm)") }, leadingIcon = { Icon(Icons.Filled.Bedtime, "Bedtime")}, modifier = Modifier.fillMaxWidth(), colors = textFieldColors)
             OutlinedTextField(value = sleepTimeWokeUpString, onValueChange = { sleepTimeWokeUpString = it }, label = { Text("Hora de levantarse (HH:mm)") }, leadingIcon = { Icon(Icons.Filled.WbSunny, "Wake up")}, modifier = Modifier.fillMaxWidth().padding(top=8.dp), colors = textFieldColors)
-            OutlinedTextField(value = sleepQuality, onValueChange = { sleepQuality = it }, label = { Text("Calidad del sueño (Buena, Regular, Mala)") }, leadingIcon = { Icon(Icons.Filled.Star, "Quality")}, modifier = Modifier.fillMaxWidth().padding(top=8.dp), colors = textFieldColors)
+            OutlinedTextField(value = sleepQuality, onValueChange = { sleepQuality = it }, label = { Text("Calidad del sueño (Ej: Buena, Regular)") }, leadingIcon = { Icon(Icons.Filled.Star, "Quality")}, modifier = Modifier.fillMaxWidth().padding(top=8.dp), colors = textFieldColors)
             Spacer(modifier = Modifier.height(16.dp))
 
             SectionTitle("Actividad Física")
@@ -261,7 +291,7 @@ fun DailyLogScreen(
                         else activityEntries = listOf(ActivityEntry())
                     },
                     showRemoveButton = activityEntries.size > 1,
-                    textFieldColors = textFieldColors // Aplicar colores
+                    textFieldColors = textFieldColors
                 )
             }
             Button(onClick = { activityEntries = activityEntries + ActivityEntry() }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
@@ -303,7 +333,11 @@ fun DailyLogScreen(
                         userId = currentUserId,
                         date = selectedDate,
                         foodEntries = foodEntries.filter { it.description.isNotBlank() || it.mealType.isNotBlank() },
-                        emotionEntry = if (mood.isNotBlank() || journalEntry.isNotBlank()) EmotionEntry(mood, moodIntensity, "", journalEntry) else null,
+                        // Guardar moodIntensity (0 si no se seleccionó ninguna estrella, o 1-5)
+                        // Si moodIntensity es 0, guardamos null para la intensidad.
+                        emotionEntry = if (mood.isNotBlank() || journalEntry.isNotBlank() || moodIntensity > 0)
+                            EmotionEntry(mood, if(moodIntensity == 0) null else moodIntensity, "", journalEntry)
+                        else null,
                         sleepEntry = if (dateToBed != null || dateWokeUp != null || sleepQuality.isNotBlank()) SleepEntry(dateToBed, dateWokeUp, sleepQuality) else null,
                         activityEntries = activityEntries.filter { it.type.isNotBlank() },
                         waterIntakeLiters = waterIntakeString.toDoubleOrNull(),
@@ -356,7 +390,7 @@ fun FoodEntryItem(
     onCaloriesChange: (String) -> Unit,
     onRemove: () -> Unit,
     showRemoveButton: Boolean,
-    textFieldColors: TextFieldColors // Añadir parámetro para los colores
+    textFieldColors: TextFieldColors
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
         OutlinedTextField(value = foodEntry.mealType, onValueChange = onMealTypeChange, label = { Text("Tipo de Comida (Ej: Desayuno)") }, leadingIcon={Icon(Icons.Filled.RestaurantMenu, "Meal Type")}, modifier = Modifier.fillMaxWidth(), colors = textFieldColors)
@@ -380,7 +414,7 @@ fun ActivityEntryItem(
     onIntensityChange: (String) -> Unit,
     onRemove: () -> Unit,
     showRemoveButton: Boolean,
-    textFieldColors: TextFieldColors // Añadir parámetro para los colores
+    textFieldColors: TextFieldColors
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
         OutlinedTextField(value = activityEntry.type, onValueChange = onTypeChange, label = { Text("Tipo de Actividad (Ej: Correr)") }, leadingIcon={Icon(Icons.Filled.FitnessCenter, "Activity Type")}, modifier = Modifier.fillMaxWidth(), colors = textFieldColors)
