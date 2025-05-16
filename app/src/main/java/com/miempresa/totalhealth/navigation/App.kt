@@ -27,17 +27,21 @@ import com.miempresa.totalhealth.auth.LoginScreen
 import com.miempresa.totalhealth.auth.RegisterScreen
 import com.miempresa.totalhealth.auth.UserRole
 import com.miempresa.totalhealth.ui.HomeScreen
-import com.miempresa.totalhealth.settings.EditProfileScreen // Importar la nueva pantalla
+import com.miempresa.totalhealth.settings.EditProfileScreen
+import com.miempresa.totalhealth.dailylog.DailyLogScreen // Importar la nueva pantalla de registro diario
+import com.miempresa.totalhealth.dailylog.DailyLogViewModel // Importar el ViewModel si es necesario pasarlo
 
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = viewModel()
+    // El DailyLogViewModel se obtendrá dentro de DailyLogScreen usando viewModel()
+    // o se puede pasar aquí si se necesita en múltiples lugares del grafo, pero no es común.
+
     val authUiState by authViewModel.authAndRoleUiState.collectAsState()
 
-    val startDestination = "login" // O determina dinámicamente basado en si el usuario ya está logueado
+    val startDestination = "login"
 
-    // Efecto para manejar la navegación global basada en el estado de autenticación
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
@@ -57,7 +61,6 @@ fun AppNavigation() {
                 }
             }
             is AuthAndRoleUiState.Idle -> {
-                // Si el estado es Idle (ej. después de logout) y no estamos en login/register, ir a login
                 if (currentRoute != "login" && currentRoute != "register") {
                     Log.d("AppNavigation", "User not authenticated (State: Idle). Current route: $currentRoute. Navigating to login.")
                     navController.navigate("login") {
@@ -67,10 +70,6 @@ fun AppNavigation() {
                 }
             }
             is AuthAndRoleUiState.Error -> {
-                // El error se maneja en la pantalla específica (Login/Register)
-                // AppNavigation no necesita redirigir en este caso a menos que el error
-                // implique un estado de no autenticado que requiera ir a login.
-                // La lógica actual de Idle cubre el caso de logout.
                 Log.d("AppNavigation", "Error state observed: ${currentAuthState.message}. No navigation action from AppNavigation unless it leads to Idle.")
             }
             is AuthAndRoleUiState.AuthLoading, is AuthAndRoleUiState.RoleLoading -> {
@@ -108,11 +107,14 @@ fun AppNavigation() {
             ProgressScreen(navController = navController)
         }
         composable("settings_screen") {
-            SettingsScreen(navController = navController) // authViewModel se obtiene dentro si es necesario
+            SettingsScreen(navController = navController)
         }
-        // Nueva ruta para editar perfil
         composable("edit_profile_screen") {
             EditProfileScreen(navController = navController, authViewModel = authViewModel)
+        }
+        // NUEVA RUTA para la pantalla de registro diario
+        composable("daily_log_screen") {
+            DailyLogScreen(navController = navController) // DailyLogViewModel se obtiene dentro con viewModel()
         }
     }
 }

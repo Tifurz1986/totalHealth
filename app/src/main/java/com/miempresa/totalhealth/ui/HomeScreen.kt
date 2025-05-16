@@ -5,7 +5,7 @@ import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable // Importación necesaria
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -20,12 +20,14 @@ import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.RestaurantMenu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.PostAdd // Icono alternativo para "Nuevo Registro"
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -37,6 +39,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em // Para letterSpacing
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -55,7 +58,7 @@ import com.miempresa.totalhealth.auth.UserProfileUiState
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    navController: NavController, // NavController para la navegación
+    navController: NavController,
     authViewModel: AuthViewModel = viewModel(),
     weeklyPhraseViewModel: WeeklyPhraseViewModel = viewModel(),
     dailyBookViewModel: DailyBookViewModel = viewModel()
@@ -85,7 +88,12 @@ fun HomeScreen(
     val dailyBookState by dailyBookViewModel.uiState.collectAsState()
 
     val colorNegro = Color.Black
-    val colorVerdePrincipal = Color(0xFF00897B)
+    val colorVerdePrincipal = Color(0xFF00897B) // Teal 700
+    // Colores para el gradiente del botón prominente
+    val colorBotonGradienteStart = Color(0xFF00796B) // Teal 600 (un poco más oscuro que el principal)
+    val colorBotonGradienteEnd = Color(0xFF00A99D)   // Un Teal más vibrante
+    val colorTextoBotonProminente = Color.White // Texto blanco para mejor contraste con gradiente verde
+
     val colorVerdeOscuroDegradado = Color(0xFF004D40)
 
     if (currentUser == null) {
@@ -173,12 +181,12 @@ fun HomeScreen(
                             Box(
                                 modifier = Modifier.height(150.dp).fillMaxWidth().background(Color.Gray.copy(alpha = 0.2f), RoundedCornerShape(8.dp)).padding(bottom = 16.dp),
                                 contentAlignment = Alignment.Center
-                            ) { Icon(imageVector = Icons.Filled.Book, contentDescription = "Libro sin imagen", tint = colorVerdePrincipal.copy(alpha = 0.7f), modifier = Modifier.size(60.dp)) }
+                            ) { Icon(Icons.Filled.Book, contentDescription = "Libro sin imagen", tint = colorVerdePrincipal.copy(alpha = 0.7f), modifier = Modifier.size(60.dp)) }
                         }
                     } ?: Box(
                         modifier = Modifier.height(150.dp).fillMaxWidth().background(Color.Gray.copy(alpha = 0.2f), RoundedCornerShape(8.dp)).padding(bottom = 16.dp),
                         contentAlignment = Alignment.Center
-                    ) { Icon(imageVector = Icons.Filled.Book, contentDescription = "Libro", tint = colorVerdePrincipal.copy(alpha = 0.7f), modifier = Modifier.size(60.dp)) }
+                    ) { Icon(Icons.Filled.Book, contentDescription = "Libro", tint = colorVerdePrincipal.copy(alpha = 0.7f), modifier = Modifier.size(60.dp)) }
 
 
                     Text(text = currentBookToShow!!.title, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
@@ -195,13 +203,11 @@ fun HomeScreen(
         }
     }
 
-
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Total Health", fontWeight = FontWeight.Bold, color = Color.White) },
                 navigationIcon = {
-                    // Envolver la imagen/icono del perfil con IconButton para hacerlo clicable
                     IconButton(onClick = {
                         Log.d("HomeScreen", "Profile icon in TopAppBar clicked. Navigating to edit_profile_screen.")
                         navController.navigate("edit_profile_screen")
@@ -211,9 +217,8 @@ fun HomeScreen(
                                 if (!state.profile.profilePictureUrl.isNullOrBlank()) {
                                     Image(
                                         painter = rememberAsyncImagePainter(model = state.profile.profilePictureUrl),
-                                        contentDescription = "Foto de Perfil (Editar)", // Actualizar descripción
+                                        contentDescription = "Foto de Perfil (Editar)",
                                         modifier = Modifier
-                                            // El padding se maneja mejor en el IconButton o Box contenedor si es necesario
                                             .size(36.dp)
                                             .clip(CircleShape)
                                             .border(1.dp, Color.White.copy(alpha = 0.5f), CircleShape),
@@ -222,7 +227,7 @@ fun HomeScreen(
                                 } else {
                                     Icon(
                                         imageVector = Icons.Filled.AccountCircle,
-                                        contentDescription = "Editar Perfil", // Actualizar descripción
+                                        contentDescription = "Editar Perfil",
                                         tint = Color.White,
                                         modifier = Modifier.size(36.dp)
                                     )
@@ -285,6 +290,56 @@ fun HomeScreen(
                 color = Color.White.copy(alpha = 0.8f),
                 modifier = Modifier.padding(bottom = 24.dp)
             )
+
+            // Botón Prominente para Nuevo Registro Diario con estilo mejorado
+            Button(
+                onClick = {
+                    Log.d("HomeScreen", "Prominent 'Nuevo Registro Diario' button clicked.")
+                    navController.navigate("daily_log_screen")
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp) // Aumentar padding vertical para más espacio
+                    .height(64.dp) // Botón más alto
+                    .shadow(elevation = 8.dp, shape = RoundedCornerShape(20.dp), spotColor = colorVerdePrincipal) // Sombra más pronunciada
+                    .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(20.dp)), // Borde sutil
+                shape = RoundedCornerShape(20.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent // Hacer el fondo transparente para que el gradiente se vea
+                ),
+                contentPadding = PaddingValues(), // Quitar padding interno para que el Box ocupe todo
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp) // Quitar elevación del botón en sí
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            brush = Brush.horizontalGradient( // Gradiente para el fondo del botón
+                                colors = listOf(colorBotonGradienteStart, colorBotonGradienteEnd)
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Filled.PostAdd, // Icono cambiado a PostAdd para "nuevo"
+                            contentDescription = "Icono Registrar",
+                            tint = colorTextoBotonProminente, // Texto blanco
+                            modifier = Modifier.size(28.dp) // Icono un poco más grande
+                        )
+                        Spacer(Modifier.width(12.dp)) // Más espacio entre icono y texto
+                        Text(
+                            "Registrar Mi Día",
+                            fontSize = 18.sp, // Texto un poco más grande
+                            fontWeight = FontWeight.Bold,
+                            color = colorTextoBotonProminente, // Texto blanco
+                            letterSpacing = 0.05.em // Espaciado entre letras sutil
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(20.dp)) // Más espacio después del botón
+
 
             FeatureCard(title = "Mi Progreso", description = "Visualiza tu avance físico y mental.", icon = Icons.Filled.Assessment, onClick = { navController.navigate("progress_screen") })
             Spacer(modifier = Modifier.height(16.dp))
