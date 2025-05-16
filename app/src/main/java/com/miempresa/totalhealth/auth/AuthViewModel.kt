@@ -25,18 +25,20 @@ import kotlinx.coroutines.tasks.await
 import java.util.Date
 import java.util.UUID
 
-// Estados de la UI para autenticación y rol (sin cambios)
+// Estados de la UI para autenticación y rol
 sealed class AuthAndRoleUiState {
     object Idle : AuthAndRoleUiState()
     object AuthLoading : AuthAndRoleUiState()
     object RoleLoading : AuthAndRoleUiState()
-    data class Authenticated(val user: FirebaseUser, val role: UserRole) : AuthAndRoleUiState()
+    // Modificado: user puede ser null (para el entrenador) y se añade userProfile
+    data class Authenticated(val user: FirebaseUser?, val role: UserRole, val userProfile: UserProfile?) : AuthAndRoleUiState()
     data class Error(val message: String) : AuthAndRoleUiState()
 }
 
 enum class UserRole {
     ADMIN,
     USER,
+    TRAINER, // <-- NUEVO ROL AÑADIDO
     UNKNOWN,
     LOADING_ROLE
 }
@@ -48,13 +50,13 @@ data class UserProfile(
     var name: String = "",
     var surname: String = "",
     var profilePictureUrl: String? = null,
-    var age: Int? = null,            // NUEVO
-    var sex: String = "",            // NUEVO
-    var height: Int? = null,         // NUEVO (en cm)
-    var weight: Double? = null,      // NUEVO (en kg)
-    var activityLevel: String = "",  // NUEVO (Ej: Sedentario, Ligero, Moderado, Activo, Muy Activo)
-    var healthGoals: String = "",    // NUEVO (Objetivos de salud del usuario)
-    val role: String = "USER",
+    var age: Int? = null,
+    var sex: String = "",
+    var height: Int? = null,
+    var weight: Double? = null,
+    var activityLevel: String = "",
+    var healthGoals: String = "",
+    val role: String = "USER", // Este campo 'role' en UserProfile es el string de Firestore
     val createdAt: Date? = null
 )
 
@@ -88,14 +90,16 @@ class AuthViewModel : ViewModel() {
     private val _passwordVisible = mutableStateOf(false)
     val passwordVisible: State<Boolean> = _passwordVisible
 
+    // Credenciales para el entrenador (super usuario)
+    private val TRAINER_EMAIL_CREDENTIAL = "entrenador"
+    private val TRAINER_PASSWORD_CREDENTIAL = "123456"
+
+
     init {
         auth.currentUser?.let {
-            // No llamar a loadUserProfile aquí directamente para evitar doble carga si fetchUserRoleAndSetState ya lo hace.
-            // fetchUserRoleAndSetState se encargará de cargar el perfil completo.
-            if (_authAndRoleUiState.value is AuthAndRoleUiState.Idle) { // Solo si no se ha determinado el estado de auth aún
+            if (_authAndRoleUiState.value is AuthAndRoleUiState.Idle) {
                 fetchUserRoleAndSetState(it)
             } else if (_userProfileUiState.value is UserProfileUiState.Idle && it.uid.isNotBlank()){
-                // Si el estado de auth ya está determinado pero el perfil no se ha cargado
                 loadUserProfile(it.uid)
             }
         }
@@ -133,26 +137,26 @@ class AuthViewModel : ViewModel() {
                 val firebaseUser = authResult.user
                 if (firebaseUser != null) {
                     Log.d("AuthViewModel", "Firebase Auth SUCCEEDED for ${firebaseUser.email}. Attempting Firestore write.")
-                    val userProfile = UserProfile( // Inicializar con nuevos campos
+                    val userProfile = UserProfile(
                         uid = firebaseUser.uid,
                         email = firebaseUser.email ?: "",
-                        name = "",
-                        surname = "",
+                        name = "", // Se podrían pedir en el registro
+                        surname = "", // Se podrían pedir en el registro
                         profilePictureUrl = null,
-                        age = null, // Inicializar a null o un valor por defecto
+                        age = null,
                         sex = "",
                         height = null,
                         weight = null,
                         activityLevel = "",
                         healthGoals = "",
-                        role = "USER",
+                        role = "USER", // Rol por defecto en Firestore
                         createdAt = Date()
                     )
                     try {
                         db.collection("users").document(firebaseUser.uid).set(userProfile).await()
                         Log.d("AuthViewModel", "Firestore write SUCCEEDED for user ${firebaseUser.uid}.")
-                        _authAndRoleUiState.value = AuthAndRoleUiState.Authenticated(firebaseUser, UserRole.USER)
-                        // También inicializar el estado del perfil localmente después del registro
+                        // Pasar el UserProfile al estado Authenticated
+                        _authAndRoleUiState.value = AuthAndRoleUiState.Authenticated(firebaseUser, UserRole.USER, userProfile)
                         _userProfileUiState.value = UserProfileUiState.Success(userProfile)
                         Log.d("AuthViewModel", "State set to Authenticated and UserProfile loaded for ${firebaseUser.email}")
                     } catch (firestoreEx: Exception) {
@@ -180,17 +184,43 @@ class AuthViewModel : ViewModel() {
     }
 
     fun loginUser() {
-        if (email.value.isBlank() || password.value.isBlank()) {
+        val currentEmail = email.value.trim()
+        val currentPassword = password.value.trim()
+
+        if (currentEmail.isBlank() || currentPassword.isBlank()) {
             _authAndRoleUiState.value = AuthAndRoleUiState.Error("El email y la contraseña no pueden estar vacíos.")
             return
         }
+
+        // Lógica especial para el inicio de sesión del entrenador
+        if (currentEmail == TRAINER_EMAIL_CREDENTIAL && currentPassword == TRAINER_PASSWORD_CREDENTIAL) {
+            Log.d("AuthViewModel", "Trainer login attempt successful.")
+            val trainerProfile = UserProfile(
+                uid = "trainer_local_id", // ID local, no de Firebase
+                email = currentEmail,
+                name = "Entrenador", // Nombre para el entrenador
+                surname = "Principal",
+                role = "TRAINER" // Rol string para el perfil, UserRole enum para el estado
+            )
+            _authAndRoleUiState.value = AuthAndRoleUiState.Authenticated(
+                user = null, // El entrenador no tiene un FirebaseUser real en este flujo
+                role = UserRole.TRAINER,
+                userProfile = trainerProfile
+            )
+            _userProfileUiState.value = UserProfileUiState.Success(trainerProfile) // Actualizar también el perfil del entrenador
+            clearFields() // Limpiar campos después del login exitoso
+            return // Salimos para no continuar con la autenticación de Firebase
+        }
+
+        // Lógica de inicio de sesión normal con Firebase
         _authAndRoleUiState.value = AuthAndRoleUiState.AuthLoading
         viewModelScope.launch {
             try {
-                val authResult = auth.signInWithEmailAndPassword(email.value.trim(), password.value.trim()).await()
+                val authResult = auth.signInWithEmailAndPassword(currentEmail, currentPassword).await()
                 val firebaseUser = authResult.user
                 if (firebaseUser != null) {
                     fetchUserRoleAndSetState(firebaseUser) // Esto cargará el rol y el perfil completo
+                    clearFields() // Limpiar campos después del login exitoso
                 } else {
                     _authAndRoleUiState.value = AuthAndRoleUiState.Error("Error al iniciar sesión (usuario nulo).")
                 }
@@ -209,46 +239,49 @@ class AuthViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val userDoc = db.collection("users").document(firebaseUser.uid).get().await()
-                var role = UserRole.USER
-                var userProfile: UserProfile? = null
+                var mappedRole = UserRole.USER // Rol por defecto
+                var userProfileData: UserProfile? = null
 
                 if (userDoc.exists()) {
-                    userProfile = userDoc.toObject(UserProfile::class.java)
-                    // Asegurar que los campos nuevos tengan valores por defecto si son null desde Firestore
-                    userProfile = userProfile?.copy(
-                        name = userProfile.name ?: "",
-                        surname = userProfile.surname ?: "",
-                        sex = userProfile.sex ?: "",
-                        activityLevel = userProfile.activityLevel ?: "",
-                        healthGoals = userProfile.healthGoals ?: ""
-                        // age, height, weight ya son nullable
+                    userProfileData = userDoc.toObject(UserProfile::class.java)
+                    userProfileData = userProfileData?.copy( // Asegurar valores por defecto
+                        name = userProfileData.name ?: "",
+                        surname = userProfileData.surname ?: "",
+                        sex = userProfileData.sex ?: "",
+                        activityLevel = userProfileData.activityLevel ?: "",
+                        healthGoals = userProfileData.healthGoals ?: ""
                     )
 
-                    val roleString = userProfile?.role ?: "USER"
-                    role = when (roleString.uppercase()) {
-                        "ADMIN", "ENTRENADOR" -> UserRole.ADMIN
+                    val roleString = userProfileData?.role ?: "USER"
+                    mappedRole = when (roleString.uppercase()) {
+                        "ADMIN" -> UserRole.ADMIN
+                        "ENTRENADOR" -> UserRole.TRAINER // <-- MAPEAR "ENTRENADOR" A UserRole.TRAINER
                         "USER", "USUARIO" -> UserRole.USER
-                        else -> UserRole.USER
+                        else -> UserRole.USER // Por defecto USER si el string no coincide
                     }
-                    Log.d("AuthViewModel", "User role from profile: $roleString, mapped to: $role")
-                    if (userProfile != null) {
-                        _userProfileUiState.value = UserProfileUiState.Success(userProfile)
-                        Log.d("AuthViewModel", "User profile loaded from Firestore: ${userProfile.email}")
+                    Log.d("AuthViewModel", "User role from profile: $roleString, mapped to: $mappedRole")
+
+                    if (userProfileData != null) {
+                        _userProfileUiState.value = UserProfileUiState.Success(userProfileData)
+                        Log.d("AuthViewModel", "User profile loaded from Firestore: ${userProfileData.email}")
                     } else {
                         _userProfileUiState.value = UserProfileUiState.Error("Error al convertir datos del perfil.")
                         Log.e("AuthViewModel", "Failed to convert Firestore document to UserProfile for UID: ${firebaseUser.uid}")
                     }
                 } else {
                     Log.w("AuthViewModel", "User document not found for ${firebaseUser.uid}. Creating basic profile.")
-                    val basicProfile = UserProfile(uid = firebaseUser.uid, email = firebaseUser.email ?: "", role = "USER", createdAt = Date())
-                    db.collection("users").document(firebaseUser.uid).set(basicProfile).await()
-                    _userProfileUiState.value = UserProfileUiState.Success(basicProfile)
-                    userProfile = basicProfile
+                    userProfileData = UserProfile(uid = firebaseUser.uid, email = firebaseUser.email ?: "", role = "USER", createdAt = Date())
+                    db.collection("users").document(firebaseUser.uid).set(userProfileData).await()
+                    _userProfileUiState.value = UserProfileUiState.Success(userProfileData)
+                    mappedRole = UserRole.USER // Rol por defecto para nuevo perfil
                 }
-                _authAndRoleUiState.value = AuthAndRoleUiState.Authenticated(firebaseUser, role)
+                // Pasar el UserProfile al estado Authenticated
+                _authAndRoleUiState.value = AuthAndRoleUiState.Authenticated(firebaseUser, mappedRole, userProfileData)
             } catch (e: Exception) {
                 Log.e("AuthViewModel", "Error fetching user role/profile: ${e.message}", e)
-                _authAndRoleUiState.value = AuthAndRoleUiState.Authenticated(firebaseUser, UserRole.USER)
+                // En caso de error al obtener el perfil, se autentica como USER con un perfil básico
+                val basicProfileOnError = UserProfile(uid = firebaseUser.uid, email = firebaseUser.email ?: "", role = "USER", createdAt = Date())
+                _authAndRoleUiState.value = AuthAndRoleUiState.Authenticated(firebaseUser, UserRole.USER, basicProfileOnError)
                 _userProfileUiState.value = UserProfileUiState.Error("Error al cargar el perfil: ${e.localizedMessage}")
             }
         }
@@ -271,7 +304,6 @@ class AuthViewModel : ViewModel() {
                 val documentSnapshot = db.collection("users").document(uid).get().await()
                 if (documentSnapshot.exists()) {
                     var userProfile = documentSnapshot.toObject(UserProfile::class.java)
-                    // Asegurar valores por defecto para campos de texto si son null desde Firestore
                     userProfile = userProfile?.copy(
                         name = userProfile.name ?: "",
                         surname = userProfile.surname ?: "",
@@ -297,7 +329,6 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    // FUNCIÓN ACTUALIZADA para incluir los nuevos campos del perfil
     fun updateUserProfile(
         name: String,
         surname: String,
@@ -312,11 +343,16 @@ class AuthViewModel : ViewModel() {
     ) {
         val currentUser = auth.currentUser
         if (currentUser == null) {
+            // Verificar si el estado actual es el del entrenador
+            val currentAuthState = _authAndRoleUiState.value
+            if (currentAuthState is AuthAndRoleUiState.Authenticated && currentAuthState.role == UserRole.TRAINER) {
+                // El entrenador no debería usar esta función para actualizar un perfil de Firebase
+                onError("Función no aplicable para el perfil de entrenador local.")
+                return
+            }
             onError("Usuario no autenticado.")
             return
         }
-        // Aquí podrías añadir más validaciones si es necesario
-        // if (name.isBlank() && surname.isBlank()) { ... }
 
         _userProfileUiState.value = UserProfileUiState.Loading
         viewModelScope.launch {
@@ -331,19 +367,22 @@ class AuthViewModel : ViewModel() {
                     "activityLevel" to activityLevel.trim(),
                     "healthGoals" to healthGoals.trim()
                 )
-                // Eliminar campos nulos del mapa si no quieres guardar `null` explícitamente
-                // o si Firestore maneja mejor los campos ausentes que los `null`.
-                // Por ahora, se guardarán los nulos si los valores Int? o Double? son null.
 
                 db.collection("users").document(currentUser.uid)
                     .set(userProfileUpdates, SetOptions.merge())
                     .await()
                 Log.d("AuthViewModel", "User profile updated successfully for UID: ${currentUser.uid}")
-                loadUserProfile(currentUser.uid)
+                loadUserProfile(currentUser.uid) // Recargar el perfil para actualizar la UI
                 onSuccess()
             } catch (e: Exception) {
                 Log.e("AuthViewModel", "Error updating user profile for UID ${currentUser.uid}: ${e.message}", e)
-                _userProfileUiState.value = UserProfileUiState.Error("Error al actualizar el perfil: ${e.localizedMessage}")
+                // Revertir el estado de carga si es necesario o cargar el perfil anterior
+                val previousProfileState = _userProfileUiState.value
+                if (previousProfileState is UserProfileUiState.Success) {
+                    loadUserProfile(currentUser.uid, previousProfileState.profile) // Recargar con datos anteriores si falla
+                } else {
+                    loadUserProfile(currentUser.uid) // Intentar recargar
+                }
                 onError("Error al actualizar el perfil: ${e.localizedMessage}")
             }
         }
@@ -352,10 +391,16 @@ class AuthViewModel : ViewModel() {
     fun uploadAndSaveProfilePictureUrl(imageUri: Uri, onSuccess: () -> Unit, onError: (String) -> Unit) {
         val currentUser = auth.currentUser
         if (currentUser == null) {
+            val currentAuthState = _authAndRoleUiState.value
+            if (currentAuthState is AuthAndRoleUiState.Authenticated && currentAuthState.role == UserRole.TRAINER) {
+                onError("Función no aplicable para el perfil de entrenador local.")
+                return
+            }
             onError("Usuario no autenticado para subir foto.")
             return
         }
-        _userProfileUiState.value = UserProfileUiState.Loading
+
+        _userProfileUiState.value = UserProfileUiState.Loading // O un estado específico de carga de imagen
         Log.d("AuthViewModel", "Starting profile picture upload for UID: ${currentUser.uid}")
 
         val fileName = "${UUID.randomUUID()}.jpg"
@@ -375,12 +420,18 @@ class AuthViewModel : ViewModel() {
                     .await()
                 Log.d("AuthViewModel", "Profile picture URL updated in Firestore.")
 
-                loadUserProfile(currentUser.uid)
+                loadUserProfile(currentUser.uid) // Recargar para obtener la nueva URL en el perfil
                 onSuccess()
 
             } catch (e: Exception) {
                 Log.e("AuthViewModel", "Error during profile picture upload/update for UID ${currentUser.uid}: ${e.message}", e)
-                loadUserProfile(currentUser.uid)
+                // Revertir el estado de carga si es necesario o cargar el perfil anterior
+                val previousProfileState = _userProfileUiState.value
+                if (previousProfileState is UserProfileUiState.Success) {
+                    loadUserProfile(currentUser.uid, previousProfileState.profile)
+                } else {
+                    loadUserProfile(currentUser.uid)
+                }
                 onError("Error al subir la foto de perfil: ${e.localizedMessage}")
             }
         }
@@ -389,18 +440,30 @@ class AuthViewModel : ViewModel() {
     fun logoutUser() {
         viewModelScope.launch {
             try {
-                auth.signOut()
-                clearFields()
-                _authAndRoleUiState.value = AuthAndRoleUiState.Idle
-                _userProfileUiState.value = UserProfileUiState.Idle
-                Log.d("AuthViewModel", "User logged out. State set to Idle.")
+                val currentAuthState = _authAndRoleUiState.value
+                if (currentAuthState is AuthAndRoleUiState.Authenticated && currentAuthState.role == UserRole.TRAINER) {
+                    // Para el entrenador, solo limpiar estados locales
+                    clearFields()
+                    _authAndRoleUiState.value = AuthAndRoleUiState.Idle
+                    _userProfileUiState.value = UserProfileUiState.Idle
+                    Log.d("AuthViewModel", "Trainer logged out. State set to Idle.")
+                } else {
+                    // Para usuarios de Firebase, cerrar sesión de Firebase
+                    auth.signOut()
+                    clearFields()
+                    _authAndRoleUiState.value = AuthAndRoleUiState.Idle
+                    _userProfileUiState.value = UserProfileUiState.Idle
+                    Log.d("AuthViewModel", "Firebase user logged out. State set to Idle.")
+                }
             } catch (e: Exception) {
                 Log.e("AuthViewModel", "Error during logout: ${e.message}", e)
-                clearFields()
+                clearFields() // Asegurar limpieza de campos incluso en error
                 _authAndRoleUiState.value = AuthAndRoleUiState.Error("Error al cerrar sesión: ${e.localizedMessage}")
+                _userProfileUiState.value = UserProfileUiState.Idle // Resetear perfil también
             }
         }
     }
+
 
     fun resetState() {
         Log.d("AuthViewModel", "Resetting auth state from ${_authAndRoleUiState.value} to Idle.")
@@ -419,6 +482,11 @@ class AuthViewModel : ViewModel() {
     }
 
     fun getCurrentUser(): FirebaseUser? {
+        // Si el estado es Entrenador, no hay FirebaseUser real
+        val currentAuthState = _authAndRoleUiState.value
+        if (currentAuthState is AuthAndRoleUiState.Authenticated && currentAuthState.role == UserRole.TRAINER) {
+            return null
+        }
         return auth.currentUser
     }
 }
