@@ -1,91 +1,105 @@
 package com.miempresa.totalhealth.trainer
 
-import android.util.Log
+// VERIFICA TUS IMPORTACIONES AQUÍ. DEBEN ESTAR TODAS LAS NECESARIAS.
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExitToApp
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Send
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme // Asegúrate que MaterialTheme está importado si lo usas para errorTextStyle
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHostController
+import androidx.navigation.NavController
 import com.miempresa.totalhealth.auth.AuthViewModel
 import com.miempresa.totalhealth.auth.UserProfile
-// Importa tus colores oro si los definiste en Color.kt, por ejemplo:
-// import com.miempresa.totalhealth.ui.theme.GoldYellowStart
-// import com.miempresa.totalhealth.ui.theme.GoldYellowMid
-// import com.miempresa.totalhealth.ui.theme.GoldYellowEnd
+// ESTA ES LA IMPORTACIÓN CRUCIAL. ASEGÚRATE DE QUE ES LA ÚNICA RELACIONADA CON ProfessionalGoldPalette
+import com.miempresa.totalhealth.ui.menu.theme.ProfessionalGoldPalette
 
-// Colores para el degradado (puedes moverlos a tu archivo Color.kt si lo prefieres)
-val GoldYellowStart = Color(0xFFFDB813) // Dorado más brillante para la parte inferior del degradado
-// val GoldYellowMid = Color(0xFFFFAA00) // No se usará en este degradado específico
-val GoldYellowEnd = Color(0xFFFF8C00)   // Dorado más oscuro/naranja para la parte media del degradado
-val TopBackgroundColor = Color.Black    // Color superior del degradado, como en el ejemplo de Login
+// NO DEBE HABER NINGUNA DEFINICIÓN DE 'object ProfessionalGoldPalette { ... }' EN ESTE ARCHIVO.
+// SI VES UNA, BORRALA COMPLETAMENTE.
 
-
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TrainerHomeScreen(
-    navController: NavHostController,
+    navController: NavController,
     authViewModel: AuthViewModel,
     trainerViewModel: TrainerViewModel = viewModel()
 ) {
-    val trainerScreenState by trainerViewModel.uiState.collectAsState()
+    val userListUiState by trainerViewModel.userListUiState.collectAsState()
 
-    var showFeedbackDialog by remember { mutableStateOf(false) }
-    var selectedUserForFeedback by remember { mutableStateOf<UserProfile?>(null) }
-    var feedbackText by remember { mutableStateOf(TextFieldValue("")) }
-
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    LaunchedEffect(trainerScreenState.errorMessage) {
-        trainerScreenState.errorMessage?.let {
-            snackbarHostState.showSnackbar(
-                message = it,
-                duration = SnackbarDuration.Short
-            )
-            trainerViewModel.clearErrorMessage()
-        }
-    }
-    LaunchedEffect(trainerScreenState.feedbackSentMessage) {
-        trainerScreenState.feedbackSentMessage?.let {
-            snackbarHostState.showSnackbar(
-                message = it,
-                duration = SnackbarDuration.Long
-            )
-            trainerViewModel.clearFeedbackMessage()
-            showFeedbackDialog = false
-            feedbackText = TextFieldValue("")
-        }
-    }
+    val blackToGoldGradientBrush = Brush.linearGradient(
+        colors = listOf(
+            ProfessionalGoldPalette.DeepBlack, // Esto debe resolverse desde la importación
+            ProfessionalGoldPalette.MidGold,
+            ProfessionalGoldPalette.RichGold
+        ),
+        start = Offset(0f, 0f),
+        end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+    )
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Portal del Entrenador") },
-                // Hacemos la TopAppBar transparente para que se vea el degradado detrás
+                title = { Text("Panel de Entrenador", color = ProfessionalGoldPalette.AppBarContent) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent, // Fondo transparente
-                    titleContentColor = Color.White // Color del título que contraste con el negro/dorado
+                    containerColor = ProfessionalGoldPalette.AppBarBackground,
                 ),
                 actions = {
-                    IconButton(onClick = { authViewModel.logoutUser() }) {
+                    IconButton(onClick = { trainerViewModel.fetchAllUsers() }) {
                         Icon(
-                            imageVector = Icons.Filled.ExitToApp,
+                            imageVector = Icons.Filled.Refresh,
+                            contentDescription = "Refrescar Lista",
+                            tint = ProfessionalGoldPalette.AppBarContent
+                        )
+                    }
+                    IconButton(onClick = {
+                        authViewModel.logoutUser()
+                    }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
                             contentDescription = "Cerrar Sesión",
-                            tint = Color.White // Icono que contraste
+                            tint = ProfessionalGoldPalette.AppBarContent
                         )
                     }
                 }
@@ -95,174 +109,125 @@ fun TrainerHomeScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            TopBackgroundColor, // Negro en la parte superior
-                            GoldYellowEnd,      // Dorado oscuro/naranja en el medio
-                            GoldYellowStart     // Dorado brillante en la parte inferior
-                        ),
-                        // Opcional: puedes ajustar los startY y endY si quieres controlar más la transición
-                        // startY = 0.0f,
-                        // endY = Float.POSITIVE_INFINITY
-                    )
-                )
-                // Aplicar el padding de Scaffold DESPUÉS del fondo para que el fondo cubra toda la pantalla
+                .background(brush = blackToGoldGradientBrush)
                 .padding(paddingValues)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp), // Padding para el contenido dentro del Box
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+            Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    "Gestión de Usuarios",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = Color.White // Color de texto que contraste con el fondo oscuro/dorado
+                    text = "Usuarios Registrados",
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = ProfessionalGoldPalette.TitleTextOnGradient,
+                    modifier = Modifier.padding(bottom = 20.dp, top = 8.dp)
                 )
-                Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedTextField(
-                    value = trainerScreenState.searchQuery,
-                    onValueChange = { trainerViewModel.onSearchQueryChanged(it) },
-                    label = { Text("Buscar usuario...", color = Color.White.copy(alpha = 0.7f)) },
-                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Buscar", tint = Color.White.copy(alpha = 0.7f)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        focusedBorderColor = GoldYellowStart,
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
-                        cursorColor = GoldYellowStart,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White.copy(alpha = 0.8f),
-                        disabledTextColor = Color.Gray,
-                        errorTextColor = MaterialTheme.colorScheme.error,
-                        focusedLabelColor = GoldYellowStart,
-                        unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
-                        // Un fondo sutil para el TextField si se desea, o dejarlo transparente
-                        containerColor = Color.Black.copy(alpha = 0.2f)
-                    )
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-
-                if (trainerScreenState.isLoadingUsers) {
-                    CircularProgressIndicator(color = GoldYellowStart)
-                } else if (trainerScreenState.users.isEmpty() && trainerScreenState.searchQuery.isNotBlank()) {
-                    Text("No se encontraron usuarios.", color = Color.White.copy(alpha = 0.8f))
-                } else if (trainerScreenState.users.isEmpty()) {
-                    Text("No hay usuarios para mostrar.", color = Color.White.copy(alpha = 0.8f))
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(trainerScreenState.users, key = { user -> user.uid }) { user ->
-                            UserItem(
-                                user = user,
-                                onClick = {
-                                    selectedUserForFeedback = user
-                                    showFeedbackDialog = true
-                                    Log.d("TrainerHome", "Usuario seleccionado para feedback: ${user.email}")
-                                }
+                when (val state = userListUiState) {
+                    is UserListUiState.Loading -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 30.dp),
+                            color = ProfessionalGoldPalette.RichGold
+                        )
+                    }
+                    is UserListUiState.Success -> {
+                        if (state.users.isEmpty()) {
+                            Text(
+                                text = "No hay usuarios registrados.",
+                                modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 30.dp),
+                                color = ProfessionalGoldPalette.SoftGold,
+                                fontSize = 18.sp,
+                                textAlign = TextAlign.Center
                             )
+                        } else {
+                            UserList(users = state.users, navController = navController)
                         }
+                    }
+                    is UserListUiState.Error -> {
+                        val errorTextStyle = MaterialTheme.typography.bodyLarge.copy(
+                            color = ProfessionalGoldPalette.ErrorTextColor,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = state.message,
+                            modifier = Modifier
+                                .align(Alignment.CenterHorizontally)
+                                .padding(top = 30.dp, start = 16.dp, end = 16.dp)
+                                .background(Color.Black.copy(alpha=0.6f), RoundedCornerShape(8.dp))
+                                .padding(16.dp),
+                            style = errorTextStyle
+                        )
                     }
                 }
             }
         }
     }
+}
 
-    if (showFeedbackDialog && selectedUserForFeedback != null) {
-        AlertDialog(
-            containerColor = Color.DarkGray, // Un color de fondo para el diálogo
-            titleContentColor = Color.White,
-            textContentColor = Color.White.copy(alpha = 0.8f),
-            onDismissRequest = {
-                showFeedbackDialog = false
-                feedbackText = TextFieldValue("")
-            },
-            title = { Text("Enviar Feedback a ${selectedUserForFeedback?.name ?: "Usuario"}") },
-            text = {
-                OutlinedTextField(
-                    value = feedbackText,
-                    onValueChange = { feedbackText = it },
-                    label = { Text("Escribe tu feedback...", color = GoldYellowStart.copy(alpha = 0.7f)) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 100.dp),
-                    maxLines = 5,
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        focusedBorderColor = GoldYellowStart,
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
-                        cursorColor = GoldYellowStart,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White.copy(alpha = 0.8f)
-                    )
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (feedbackText.text.isNotBlank()) {
-                            trainerViewModel.sendFeedbackToUser(selectedUserForFeedback!!.uid, feedbackText.text)
-                        }
-                    },
-                    enabled = feedbackText.text.isNotBlank(),
-                    colors = ButtonDefaults.buttonColors(containerColor = GoldYellowStart)
-                ) {
-                    Text("Enviar", color = Color.Black)
-                }
-            },
-            dismissButton = {
-                Button(
-                    onClick = {
-                        showFeedbackDialog = false
-                        feedbackText = TextFieldValue("")
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray.copy(alpha = 0.5f))
-                ) {
-                    Text("Cancelar", color = Color.White)
-                }
-            }
-        )
+@Composable
+fun UserList(users: List<UserProfile>, navController: NavController) {
+    LazyColumn(
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(vertical = 8.dp)
+    ) {
+        items(users) { user ->
+            UserItem(user = user, navController = navController)
+        }
     }
 }
 
 @Composable
-fun UserItem(user: UserProfile, onClick: () -> Unit) {
+fun UserItem(user: UserProfile, navController: NavController) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.3f)) // Fondo oscuro semi-transparente para las tarjetas
+            .border(1.dp, ProfessionalGoldPalette.BorderColor, RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(12.dp))
+            .clickable {
+                if (user.uid.isNotBlank()) {
+                    navController.navigate("trainer_user_detail/${user.uid}")
+                }
+            },
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = ProfessionalGoldPalette.CardBackground.copy(alpha = 0.92f)
+        )
     ) {
         Row(
             modifier = Modifier
-                .padding(12.dp)
+                .padding(16.dp)
                 .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            Icon(
+                imageVector = Icons.Default.AccountCircle,
+                contentDescription = "Icono de Usuario",
+                modifier = Modifier.size(48.dp),
+                tint = ProfessionalGoldPalette.IconTint
+            )
+            Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${user.name} ${user.surname}".trim().ifEmpty { "Nombre no disponible" },
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White // Texto blanco para contraste
+                    text = user.fullName.ifEmpty { "Nombre no disponible" },
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 19.sp,
+                    color = ProfessionalGoldPalette.TextPrimary
                 )
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = user.email.ifEmpty { "Email no disponible" },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.7f) // Texto blanco semi-transparente
+                    fontSize = 15.sp,
+                    color = ProfessionalGoldPalette.TextSecondary
                 )
+                if (user.role.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Rol: ${user.role.uppercase()}",
+                        fontSize = 13.sp,
+                        color = ProfessionalGoldPalette.IconTint,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
-            Spacer(modifier = Modifier.width(8.dp))
-            Icon(
-                imageVector = Icons.Filled.Send,
-                contentDescription = "Enviar Feedback",
-                tint = GoldYellowStart // Icono en dorado
-            )
         }
     }
 }

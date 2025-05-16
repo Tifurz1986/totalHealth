@@ -22,32 +22,31 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.miempresa.totalhealth.foodreport.FoodReportScreen
 import com.miempresa.totalhealth.progress.ProgressScreen
-import com.miempresa.totalhealth.settings.SettingsScreen // Original import
-import com.miempresa.totalhealth.auth.AuthAndRoleUiState // Asegúrate que esta sea la clase correcta
+import com.miempresa.totalhealth.settings.SettingsScreen
+import com.miempresa.totalhealth.auth.AuthAndRoleUiState
 import com.miempresa.totalhealth.auth.AuthViewModel
 import com.miempresa.totalhealth.auth.LoginScreen
 import com.miempresa.totalhealth.auth.RegisterScreen
-import com.miempresa.totalhealth.auth.UserRole // Asegúrate que esta sea la clase correcta
+import com.miempresa.totalhealth.auth.UserRole
 import com.miempresa.totalhealth.ui.HomeScreen
 import com.miempresa.totalhealth.settings.EditProfileScreen
 import com.miempresa.totalhealth.dailylog.DailyLogScreen
 import com.miempresa.totalhealth.journal.ImprovementJournalScreen
 import com.miempresa.totalhealth.journal.AddEditImprovementEntryScreen
 import com.miempresa.totalhealth.trainer.TrainerHomeScreen
+import com.miempresa.totalhealth.trainer.TrainerUserDetailScreen
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation() { // <--- RENOMBRADA DE App() A AppNavigation()
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = viewModel()
     val authUiState by authViewModel.authAndRoleUiState.collectAsState()
-
-    val startDestination = "login"
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
     LaunchedEffect(authUiState, currentRoute) {
-        Log.d("AppNavigation", "Effect triggered. AuthState: $authUiState, CurrentRoute: $currentRoute")
+        Log.d("AppNavigationEffect", "Effect triggered. AuthState: $authUiState, CurrentRoute: $currentRoute")
         val currentAuthState = authUiState
 
         when (currentAuthState) {
@@ -57,9 +56,9 @@ fun AppNavigation() {
                         UserRole.ADMIN -> "home_admin"
                         UserRole.TRAINER -> "home_trainer"
                         UserRole.USER -> "home_user"
-                        UserRole.UNKNOWN, UserRole.LOADING_ROLE -> "home_user"
+                        UserRole.UNKNOWN, UserRole.LOADING_ROLE -> "home_user" // Default a home_user
                     }
-                    Log.d("AppNavigation", "User authenticated on $currentRoute. Navigating to $destination.")
+                    Log.d("AppNavigationEffect", "User authenticated on $currentRoute. Navigating to $destination.")
                     navController.navigate(destination) {
                         popUpTo(navController.graph.startDestinationId) { inclusive = true }
                         launchSingleTop = true
@@ -68,7 +67,7 @@ fun AppNavigation() {
             }
             is AuthAndRoleUiState.Idle -> {
                 if (currentRoute != "login" && currentRoute != "register") {
-                    Log.d("AppNavigation", "User not authenticated (State: Idle). Current route: $currentRoute. Navigating to login.")
+                    Log.d("AppNavigationEffect", "User not authenticated (State: Idle). Current route: $currentRoute. Navigating to login.")
                     navController.navigate("login") {
                         popUpTo(navController.graph.id) { inclusive = true }
                         launchSingleTop = true
@@ -76,10 +75,9 @@ fun AppNavigation() {
                 }
             }
             is AuthAndRoleUiState.Error -> {
-                Log.d("AppNavigation", "Error state observed: ${currentAuthState.message}.")
                 if (currentRoute != "login" && currentRoute != "register") {
-                    Log.d("AppNavigation", "Error state, navigating to login from $currentRoute")
-                    authViewModel.resetState()
+                    Log.d("AppNavigationEffect", "Error state, navigating to login from $currentRoute")
+                    // authViewModel.resetState() // Considera si quieres resetear el estado aquí o dejar que la pantalla de login lo maneje
                     navController.navigate("login") {
                         popUpTo(navController.graph.id) { inclusive = true }
                         launchSingleTop = true
@@ -87,18 +85,18 @@ fun AppNavigation() {
                 }
             }
             is AuthAndRoleUiState.AuthLoading, is AuthAndRoleUiState.RoleLoading -> {
-                Log.d("AppNavigation", "Authentication or role is loading. No navigation change from AppNavigation.")
+                Log.d("AppNavigationEffect", "Authentication or role is loading. No navigation change.")
             }
         }
     }
 
-    NavHost(navController = navController, startDestination = startDestination) {
+    NavHost(navController = navController, startDestination = "login") {
         composable("login") { LoginScreen(navController, authViewModel) }
         composable("register") { RegisterScreen(navController, authViewModel) }
 
         composable("home_user") { HomeScreen(navController, authViewModel) }
         composable("home_admin") {
-            Log.d("AppNavigation", "Navigated to home_admin (placeholder).")
+            Log.d("NavHost", "Navigated to home_admin (placeholder).")
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Pantalla Admin (En construcción)", color = Color.Black)
@@ -112,14 +110,20 @@ fun AppNavigation() {
             TrainerHomeScreen(navController = navController, authViewModel = authViewModel)
         }
 
+        composable(
+            route = "trainer_user_detail/{userId}",
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId")
+            TrainerUserDetailScreen(
+                navController = navController,
+                userId = userId
+            )
+        }
+
         composable("food_report") { FoodReportScreen(navController) }
         composable("progress_screen") { ProgressScreen(navController) }
-
-        // CORREGIDO: Llamada a SettingsScreen solo con navController, según el error.
-        // Si SettingsScreen SÍ necesita authViewModel, deberás modificar SettingsScreen.kt
-        // para que acepte AuthViewModel como parámetro.
         composable("settings_screen") { SettingsScreen(navController) }
-
         composable("edit_profile_screen") { EditProfileScreen(navController, authViewModel) }
         composable("daily_log_screen") { DailyLogScreen(navController) }
 
