@@ -15,12 +15,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Book
-import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.EditNote // Para Diario de Mejoras y el botón prominente
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.RestaurantMenu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.PostAdd // Icono alternativo para "Nuevo Registro"
+import androidx.compose.material.icons.filled.PostAdd
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
@@ -39,7 +39,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.em // Para letterSpacing
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -88,12 +88,10 @@ fun HomeScreen(
     val dailyBookState by dailyBookViewModel.uiState.collectAsState()
 
     val colorNegro = Color.Black
-    val colorVerdePrincipal = Color(0xFF00897B) // Teal 700
-    // Colores para el gradiente del botón prominente
-    val colorBotonGradienteStart = Color(0xFF00796B) // Teal 600 (un poco más oscuro que el principal)
-    val colorBotonGradienteEnd = Color(0xFF00A99D)   // Un Teal más vibrante
-    val colorTextoBotonProminente = Color.White // Texto blanco para mejor contraste con gradiente verde
-
+    val colorVerdePrincipal = Color(0xFF00897B)
+    val colorBotonGradienteStart = Color(0xFF00796B)
+    val colorBotonGradienteEnd = Color(0xFF00A99D)
+    val colorTextoBotonProminente = Color.White
     val colorVerdeOscuroDegradado = Color(0xFF004D40)
 
     if (currentUser == null) {
@@ -291,7 +289,7 @@ fun HomeScreen(
                 modifier = Modifier.padding(bottom = 24.dp)
             )
 
-            // Botón Prominente para Nuevo Registro Diario con estilo mejorado
+            // Botón Prominente para Nuevo Registro Diario
             Button(
                 onClick = {
                     Log.d("HomeScreen", "Prominent 'Nuevo Registro Diario' button clicked.")
@@ -299,22 +297,22 @@ fun HomeScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 12.dp) // Aumentar padding vertical para más espacio
-                    .height(64.dp) // Botón más alto
-                    .shadow(elevation = 8.dp, shape = RoundedCornerShape(20.dp), spotColor = colorVerdePrincipal) // Sombra más pronunciada
-                    .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(20.dp)), // Borde sutil
+                    .padding(vertical = 12.dp)
+                    .height(64.dp)
+                    .shadow(elevation = 8.dp, shape = RoundedCornerShape(20.dp), spotColor = colorVerdePrincipal)
+                    .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(20.dp)),
                 shape = RoundedCornerShape(20.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent // Hacer el fondo transparente para que el gradiente se vea
+                    containerColor = Color.Transparent
                 ),
-                contentPadding = PaddingValues(), // Quitar padding interno para que el Box ocupe todo
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp) // Quitar elevación del botón en sí
+                contentPadding = PaddingValues(),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(
-                            brush = Brush.horizontalGradient( // Gradiente para el fondo del botón
+                            brush = Brush.horizontalGradient(
                                 colors = listOf(colorBotonGradienteStart, colorBotonGradienteEnd)
                             )
                         ),
@@ -322,32 +320,40 @@ fun HomeScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            Icons.Filled.PostAdd, // Icono cambiado a PostAdd para "nuevo"
+                            Icons.Filled.PostAdd, // O Icons.Filled.EditNote
                             contentDescription = "Icono Registrar",
-                            tint = colorTextoBotonProminente, // Texto blanco
-                            modifier = Modifier.size(28.dp) // Icono un poco más grande
+                            tint = colorTextoBotonProminente,
+                            modifier = Modifier.size(28.dp)
                         )
-                        Spacer(Modifier.width(12.dp)) // Más espacio entre icono y texto
+                        Spacer(Modifier.width(12.dp))
                         Text(
                             "Registrar Mi Día",
-                            fontSize = 18.sp, // Texto un poco más grande
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = colorTextoBotonProminente, // Texto blanco
-                            letterSpacing = 0.05.em // Espaciado entre letras sutil
+                            color = colorTextoBotonProminente,
+                            letterSpacing = 0.05.em
                         )
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(20.dp)) // Más espacio después del botón
+            Spacer(modifier = Modifier.height(20.dp))
 
 
             FeatureCard(title = "Mi Progreso", description = "Visualiza tu avance físico y mental.", icon = Icons.Filled.Assessment, onClick = { navController.navigate("progress_screen") })
             Spacer(modifier = Modifier.height(16.dp))
             FeatureCard(title = "Reporte de Comida", description = "Lleva un control de tu alimentación.", icon = Icons.Filled.RestaurantMenu, onClick = { navController.navigate("food_report") })
             Spacer(modifier = Modifier.height(16.dp))
-            FeatureCard(title = "Diario de Mejoras", description = "Reflexiona sobre tus logros y metas.", icon = Icons.Filled.EditNote, onClick = {
-                Toast.makeText(context, "Diario: Próximamente", Toast.LENGTH_SHORT).show()
-            })
+
+            // Funcionalidad del botón "Diario de Mejoras"
+            FeatureCard(
+                title = "Diario de Mejoras",
+                description = "Reflexiona sobre tus logros y metas.",
+                icon = Icons.Filled.EditNote,
+                onClick = {
+                    Log.d("HomeScreen", "Diario de Mejoras clicked. Navigating to improvement_journal_screen.")
+                    navController.navigate("improvement_journal_screen")
+                }
+            )
             Spacer(modifier = Modifier.height(16.dp))
 
             Row(Modifier.fillMaxWidth()) {
