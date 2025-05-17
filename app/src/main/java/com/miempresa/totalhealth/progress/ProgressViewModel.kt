@@ -5,8 +5,8 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.auth.FirebaseAuth // Importación directa
-import com.google.firebase.auth.ktx.auth    // Importación KTX
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.firestore.ktx.toObject
@@ -37,28 +37,21 @@ sealed class CoachRatingsUiState {
 class ProgressViewModel : ViewModel() {
 
     private val db = Firebase.firestore
-    private val auth: FirebaseAuth = Firebase.auth // Definición explícita de tipo y usando KTX
+    private val auth: FirebaseAuth = Firebase.auth
 
-    // --- Estados y lógica para el registro de progreso manual (existente) ---
     private val _addProgressUiState = MutableStateFlow<ProgressUiState>(ProgressUiState.Idle)
     val addProgressUiState: StateFlow<ProgressUiState> = _addProgressUiState.asStateFlow()
-
     private val _physicalLevel = mutableFloatStateOf(5f)
     val physicalLevel: androidx.compose.runtime.State<Float> = _physicalLevel
-
     private val _mentalLevel = mutableFloatStateOf(5f)
     val mentalLevel: androidx.compose.runtime.State<Float> = _mentalLevel
-
     private val _nutritionLevel = mutableFloatStateOf(5f)
     val nutritionLevel: androidx.compose.runtime.State<Float> = _nutritionLevel
-
     private val _notes = mutableStateOf("")
     val notes: androidx.compose.runtime.State<String> = _notes
-
     private val _entryDateMillis = mutableStateOf(System.currentTimeMillis())
     val entryDateMillis: androidx.compose.runtime.State<Long> = _entryDateMillis
 
-    // --- Estados y lógica para las valoraciones del coach ---
     private val _coachRatingsUiState = MutableStateFlow<CoachRatingsUiState>(CoachRatingsUiState.Idle)
     val coachRatingsUiState: StateFlow<CoachRatingsUiState> = _coachRatingsUiState.asStateFlow()
 
@@ -69,7 +62,7 @@ class ProgressViewModel : ViewModel() {
     fun onEntryDateSelected(millis: Long) { _entryDateMillis.value = millis }
 
     fun addProgressEntry() {
-        val currentUserId = auth.currentUser?.uid // 'auth' debería estar resuelto aquí
+        val currentUserId = auth.currentUser?.uid
         if (currentUserId == null) {
             _addProgressUiState.value = ProgressUiState.Error("Usuario no autenticado.")
             return
@@ -82,7 +75,7 @@ class ProgressViewModel : ViewModel() {
                     set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
                 }
                 val entryDateForDb = calendar.time
-                val newEntry = ProgressEntry(
+                val newEntry = ProgressEntry( // Asumiendo ProgressEntry.kt está definido
                     userId = currentUserId,
                     physical = _physicalLevel.floatValue.toInt(),
                     mental = _mentalLevel.floatValue.toInt(),
@@ -117,13 +110,13 @@ class ProgressViewModel : ViewModel() {
 
     fun loadLatestCoachRatingsForUser(userId: String) {
         if (userId.isBlank()) {
-            _coachRatingsUiState.value = CoachRatingsUiState.Error("ID de usuario no válido para cargar valoraciones.")
-            Log.w("ProgressViewModel", "Se intentó cargar valoraciones con UID de usuario vacío.")
+            _coachRatingsUiState.value = CoachRatingsUiState.Error("ID de usuario no válido.")
+            Log.w("ProgressViewModel", "loadLatestCoachRatingsForUser llamado con UID vacío.")
             return
         }
 
         _coachRatingsUiState.value = CoachRatingsUiState.Loading
-        Log.d("ProgressViewModel", "Cargando ÚLTIMAS valoraciones del coach para userID: $userId (DESDE FIRESTORE - FUNCIÓN CORREGIDA)")
+        Log.d("ProgressViewModel", "Cargando ÚLTIMAS valoraciones del coach para userID: $userId (Usando Gold Palette)")
         viewModelScope.launch {
             try {
                 val querySnapshot = db.collection("users").document(userId)
@@ -140,45 +133,38 @@ class ProgressViewModel : ViewModel() {
                         _coachRatingsUiState.value = CoachRatingsUiState.Success(ratings)
                         Log.d("ProgressViewModel", "Última valoración del coach cargada para $userId: $ratings")
                     } else {
-                        _coachRatingsUiState.value = CoachRatingsUiState.Error("Error al convertir datos de valoración (UID: $userId).")
-                        Log.e("ProgressViewModel", "Error al convertir UserProgressRatings para $userId. Documento existe pero la conversión falló.")
+                        _coachRatingsUiState.value = CoachRatingsUiState.Error("Error al parsear datos de valoración para $userId.")
+                        Log.e("ProgressViewModel", "Error al convertir UserProgressRatings para $userId. Doc existe pero conversión falló.")
                     }
                 } else {
                     _coachRatingsUiState.value = CoachRatingsUiState.Success(null)
-                    Log.d("ProgressViewModel", "No se encontraron valoraciones (ninguna) del coach para $userId.")
+                    Log.d("ProgressViewModel", "No se encontraron valoraciones del coach para $userId.")
                 }
             } catch (e: Exception) {
-                Log.e("ProgressViewModel", "Error al cargar últimas valoraciones del coach para $userId", e)
-                _coachRatingsUiState.value = CoachRatingsUiState.Error("Error al cargar últimas valoraciones: ${e.localizedMessage}")
+                Log.e("ProgressViewModel", "Error al cargar últimas valoraciones para $userId", e)
+                _coachRatingsUiState.value = CoachRatingsUiState.Error("Error al cargar valoraciones: ${e.localizedMessage}")
             }
         }
     }
 
     fun saveCoachRatingsForUser(
-        userId: String,
-        periodId: String,
-        overallRating: Float,
-        generalFeedback: String?,
-        categoryRatings: List<ProgressCategoryRating>
+        userId: String, periodId: String, overallRating: Float,
+        generalFeedback: String?, categoryRatings: List<ProgressCategoryRating>
     ) {
         viewModelScope.launch {
-            Log.d("ProgressViewModel", "Intentando guardar valoraciones del coach para Usuario ID: $userId, Periodo: $periodId")
+            Log.d("ProgressViewModel", "Intentando guardar valoraciones para Usuario ID: $userId, Periodo: $periodId")
             try {
                 val userProgressRatings = UserProgressRatings(
-                    userId = userId,
-                    periodId = periodId,
-                    ratings = categoryRatings,
-                    overallAverageRating = overallRating,
-                    generalCoachFeedback = generalFeedback,
+                    userId = userId, periodId = periodId, ratings = categoryRatings,
+                    overallAverageRating = overallRating, generalCoachFeedback = generalFeedback,
                     lastUpdated = Date()
                 )
                 db.collection("users").document(userId)
                     .collection("coach_ratings").document(periodId)
-                    .set(userProgressRatings)
-                    .await()
-                Log.i("ProgressViewModel", "Valoraciones del coach guardadas exitosamente para: $userId, periodo: $periodId")
+                    .set(userProgressRatings).await()
+                Log.i("ProgressViewModel", "Valoraciones guardadas exitosamente para: $userId, periodo: $periodId")
             } catch (e: Exception) {
-                Log.e("ProgressViewModel", "Error al guardar valoraciones del coach para: $userId", e)
+                Log.e("ProgressViewModel", "Error al guardar valoraciones para: $userId", e)
             }
         }
     }
