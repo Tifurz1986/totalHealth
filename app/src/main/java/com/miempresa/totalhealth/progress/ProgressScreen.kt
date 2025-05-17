@@ -1,157 +1,159 @@
 package com.miempresa.totalhealth.progress
 
-import android.widget.Toast
+import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.* // Importar todos los iconos filled
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.miempresa.totalhealth.common.composables.StarRatingDisplay // Importar el Composable de estrellas
+import com.miempresa.totalhealth.auth.AuthAndRoleUiState // Importar
+import com.miempresa.totalhealth.auth.AuthViewModel     // Importar
+import com.miempresa.totalhealth.ui.menu.theme.ProfessionalGoldPalette
+import java.text.SimpleDateFormat
+import java.util.Locale
+// Importación CORRECTA para StarRatingDisplay
+import com.miempresa.totalhealth.common.composables.StarRatingDisplay
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProgressScreen(
     navController: NavController,
-    progressViewModel: ProgressViewModel = viewModel()
+    progressViewModel: ProgressViewModel = viewModel(),
+    authViewModel: AuthViewModel = viewModel() // Inyectar AuthViewModel
 ) {
-    val context = LocalContext.current
     val coachRatingsState by progressViewModel.coachRatingsUiState.collectAsState()
+    val authState by authViewModel.authAndRoleUiState.collectAsState()
 
-    val colorNegro = Color.Black
-    val colorVerdePrincipal = Color(0xFF00897B)
-    val colorVerdeOscuroDegradado = Color(0xFF004D40)
-    val colorTextoClaro = Color.White.copy(alpha = 0.9f)
-    val colorTextoSecundarioClaro = Color.White.copy(alpha = 0.7f)
-    val starColor = Color(0xFFFFD700) // Amarillo para las estrellas
-
-    // Efecto para mostrar errores o mensajes
-    LaunchedEffect(coachRatingsState) {
-        if (coachRatingsState is CoachRatingsUiState.Error) {
-            Toast.makeText(context, (coachRatingsState as CoachRatingsUiState.Error).message, Toast.LENGTH_LONG).show()
-            progressViewModel.resetCoachRatingsUiState()
+    LaunchedEffect(authState) { // Se dispara si authState cambia
+        val currentAuthState = authState
+        Log.d("ProgressScreen", "AuthState changed: $currentAuthState")
+        if (currentAuthState is AuthAndRoleUiState.Authenticated) {
+            currentAuthState.userProfile?.uid?.let { userId ->
+                if (userId.isNotBlank()) {
+                    Log.d("ProgressScreen", "Usuario autenticado con UID: $userId. Cargando últimas valoraciones.")
+                    progressViewModel.loadLatestCoachRatingsForUser(userId)
+                } else {
+                    Log.w("ProgressScreen", "UID del UserProfile está vacío en estado Authenticated.")
+                    progressViewModel.resetCoachRatingsUiState() // Resetear si no hay UID
+                }
+            } ?: run {
+                Log.w("ProgressScreen", "UserProfile es nulo en estado Authenticated.")
+                progressViewModel.resetCoachRatingsUiState() // Resetear si no hay UserProfile
+            }
+        } else {
+            Log.d("ProgressScreen", "Usuario no autenticado o estado de auth no es Authenticated ($currentAuthState). Reseteando valoraciones.")
+            progressViewModel.resetCoachRatingsUiState() // Resetear si el usuario no está autenticado
         }
     }
 
+    val blackToGoldGradientBrush = Brush.linearGradient(
+        colors = listOf(
+            ProfessionalGoldPalette.DeepBlack,
+            ProfessionalGoldPalette.MidGold,
+            ProfessionalGoldPalette.RichGold
+        )
+    )
+
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Mi Progreso (Valoración del Coach)", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 18.sp, maxLines = 1) },
+            TopAppBar(
+                title = { Text("Mi Último Progreso", color = ProfessionalGoldPalette.AppBarContent) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver", tint = Color.White)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = ProfessionalGoldPalette.AppBarContent
+                        )
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = colorNegro)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = ProfessionalGoldPalette.AppBarBackground
+                )
             )
-        },
-        containerColor = colorNegro
+        }
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
+                .background(brush = blackToGoldGradientBrush)
                 .padding(paddingValues)
-                .background(brush = Brush.verticalGradient(colors = listOf(colorNegro, colorVerdeOscuroDegradado)))
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             when (val state = coachRatingsState) {
                 is CoachRatingsUiState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.padding(32.dp), color = colorVerdePrincipal)
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center),
+                        color = ProfessionalGoldPalette.RichGold
+                    )
                 }
                 is CoachRatingsUiState.Success -> {
-                    val userRatings = state.progressRatings
-                    if (userRatings != null) {
-                        Text(
-                            text = "Valoración General del Período", // Podrías mostrar userRatings.periodId
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = colorVerdePrincipal,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-                        StarRatingDisplay(
-                            rating = userRatings.overallAverageRating,
-                            starSize = 36.dp,
-                            starColor = starColor,
-                            modifier = Modifier.padding(bottom = 16.dp)
-                        )
-
-                        userRatings.generalCoachFeedback?.let { feedback ->
-                            if (feedback.isNotBlank()) {
-                                Text(
-                                    text = "Feedback General del Coach:",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colorTextoClaro,
-                                    modifier = Modifier.align(Alignment.Start).padding(top = 8.dp, bottom = 4.dp)
-                                )
-                                Text(
-                                    text = feedback,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = colorTextoSecundarioClaro,
-                                    modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
-                                )
-                            }
-                        }
-                        Divider(color = colorVerdePrincipal.copy(alpha = 0.5f), modifier = Modifier.padding(vertical = 16.dp))
-
-                        Text(
-                            text = "Valoraciones por Categoría:",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = colorTextoClaro,
-                            modifier = Modifier.align(Alignment.Start).padding(bottom = 12.dp)
-                        )
-
-                        userRatings.ratings.forEach { categoryRating ->
-                            RatingCategoryItem(
-                                categoryName = categoryRating.categoryName,
-                                rating = categoryRating.rating,
-                                coachNotes = categoryRating.coachNotes,
-                                starColor = starColor
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                        }
-
+                    val ratingsData = state.progressRatings
+                    if (ratingsData != null) {
+                        CoachRatingsContent(ratingsData = ratingsData)
                     } else {
-                        Text(
-                            "Aún no hay valoraciones de tu coach para este período.",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = colorTextoSecundarioClaro,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(32.dp)
-                        )
+                        Box(
+                            modifier = Modifier.fillMaxSize().padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Aún no hay valoraciones de tu coach.",
+                                color = ProfessionalGoldPalette.TextPrimary,
+                                fontSize = 18.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .background(ProfessionalGoldPalette.CardBackground.copy(alpha = 0.7f), RoundedCornerShape(8.dp))
+                                    .padding(16.dp)
+                            )
+                        }
                     }
                 }
                 is CoachRatingsUiState.Error -> {
-                    // El mensaje de error se muestra mediante el Toast en LaunchedEffect
-                    // Aquí podrías mostrar un botón de reintento o un mensaje más persistente si lo deseas.
-                    Text(
-                        "No se pudieron cargar las valoraciones.",
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(16.dp)
-                    )
-                    Button(onClick = { progressViewModel.loadCoachRatingsForCurrentPeriod() }) {
-                        Text("Reintentar")
+                    Box(
+                        modifier = Modifier.fillMaxSize().padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Error al cargar tus valoraciones: ${state.message}",
+                            color = ProfessionalGoldPalette.ErrorTextColor,
+                            fontSize = 18.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .background(ProfessionalGoldPalette.CardBackground.copy(alpha = 0.7f), RoundedCornerShape(8.dp))
+                                .padding(16.dp)
+                        )
                     }
                 }
                 is CoachRatingsUiState.Idle -> {
-                    // Podría mostrar un mensaje o simplemente esperar a que se carguen los datos.
-                    Text("Cargando datos de progreso...", color = colorTextoSecundarioClaro)
+                    Box(
+                        modifier = Modifier.fillMaxSize().padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "Esperando datos...", // Mensaje para el estado Idle
+                            color = ProfessionalGoldPalette.TextSecondary,
+                            fontSize = 16.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
         }
@@ -159,46 +161,146 @@ fun ProgressScreen(
 }
 
 @Composable
-fun RatingCategoryItem(
-    categoryName: String,
-    rating: Float,
-    coachNotes: String?,
-    starColor: Color
-) {
+fun CoachRatingsContent(ratingsData: UserProgressRatings) {
+    val dateFormat = remember { SimpleDateFormat("dd 'de' MMMM, HH:mm", Locale("es", "ES")) }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        item {
+            Text(
+                "Feedback General del Coach",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = ProfessionalGoldPalette.TitleTextOnGradient,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            // LLAMADA A StarRatingDisplay con el parámetro starColor
+            StarRatingDisplay(
+                rating = ratingsData.overallAverageRating,
+                maxStars = 5,
+                starSize = 36.dp,
+                starColor = ProfessionalGoldPalette.RichGold // Ajustado al parámetro de tu función
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (!ratingsData.generalCoachFeedback.isNullOrBlank()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = ProfessionalGoldPalette.CardBackground.copy(alpha = 0.85f))
+                ) {
+                    Text(
+                        text = ratingsData.generalCoachFeedback,
+                        color = ProfessionalGoldPalette.TextPrimary,
+                        modifier = Modifier.padding(16.dp),
+                        fontSize = 16.sp
+                    )
+                }
+            } else {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = ProfessionalGoldPalette.CardBackground.copy(alpha = 0.85f))
+                ) {
+                    Text(
+                        text = "No hay feedback general del coach para este período.",
+                        color = ProfessionalGoldPalette.TextSecondary,
+                        modifier = Modifier.padding(16.dp),
+                        textAlign = TextAlign.Center,
+                        fontSize = 15.sp
+                    )
+                }
+            }
+            ratingsData.lastUpdated?.let {
+                Text(
+                    text = "Última actualización: ${dateFormat.format(it)}",
+                    fontSize = 12.sp,
+                    color = ProfessionalGoldPalette.TextSecondary.copy(alpha = 0.8f),
+                    modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
+                )
+            }
+            HorizontalDivider(
+                color = ProfessionalGoldPalette.BorderColor.copy(alpha = 0.5f),
+                thickness = 1.dp,
+                modifier = Modifier.padding(vertical = 16.dp)
+            )
+        }
+
+        if (ratingsData.ratings.isNotEmpty()) {
+            item {
+                Text(
+                    "Valoraciones por Categoría",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = ProfessionalGoldPalette.TitleTextOnGradient,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+            }
+            items(ratingsData.ratings) { categoryRating ->
+                CategoryRatingItem(categoryRating = categoryRating)
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+        } else {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = ProfessionalGoldPalette.CardBackground.copy(alpha = 0.85f))
+                ){
+                    Text(
+                        "No hay valoraciones detalladas por categoría.",
+                        color = ProfessionalGoldPalette.TextSecondary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(16.dp).fillMaxWidth()
+                    )
+                }
+            }
+        }
+        item { Spacer(modifier = Modifier.height(16.dp)) }
+    }
+}
+
+@Composable
+fun CategoryRatingItem(categoryRating: ProgressCategoryRating) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = ProfessionalGoldPalette.CardBackground.copy(alpha = 0.9f)
+        )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = categoryName,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color.White.copy(alpha = 0.9f)
+                text = categoryRating.categoryName,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium,
+                color = ProfessionalGoldPalette.TextPrimary
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
+            // LLAMADA A StarRatingDisplay con el parámetro starColor
             StarRatingDisplay(
-                rating = rating,
-                starSize = 28.dp, // Estrellas un poco más grandes para las categorías
-                starColor = starColor
+                rating = categoryRating.rating,
+                maxStars = 5,
+                starSize = 28.dp,
+                starColor = ProfessionalGoldPalette.RichGold // Ajustado al parámetro de tu función
             )
-            coachNotes?.let { notes ->
-                if (notes.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Notas del Coach:",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White.copy(alpha = 0.7f)
-                    )
-                    Text(
-                        text = notes,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.8f)
-                    )
-                }
+            if (!categoryRating.coachNotes.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Notas del Coach:",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = ProfessionalGoldPalette.TextSecondary.copy(alpha = 0.9f)
+                )
+                Text(
+                    text = categoryRating.coachNotes,
+                    fontSize = 15.sp,
+                    color = ProfessionalGoldPalette.TextPrimary.copy(alpha = 0.9f)
+                )
             }
         }
     }
