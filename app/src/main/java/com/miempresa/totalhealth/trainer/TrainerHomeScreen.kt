@@ -1,46 +1,26 @@
 package com.miempresa.totalhealth.trainer
 
 import android.annotation.SuppressLint
-import android.util.Log // Importante: Añadir import para Log
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -52,7 +32,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.miempresa.totalhealth.auth.AuthViewModel
 import com.miempresa.totalhealth.auth.UserProfile
-import com.miempresa.totalhealth.ui.menu.theme.ProfessionalGoldPalette
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,40 +43,36 @@ fun TrainerHomeScreen(
 ) {
     val userListUiState by trainerViewModel.userListUiState.collectAsState()
 
-    val blackToGoldGradientBrush = Brush.linearGradient(
+    val blackToGoldGradientBrush = Brush.verticalGradient(
         colors = listOf(
-            ProfessionalGoldPalette.DeepBlack,
-            ProfessionalGoldPalette.MidGold,
-            ProfessionalGoldPalette.RichGold
-        ),
-        start = Offset(0f, 0f),
-        end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+            Color(0xFF141414),
+            Color(0xFF23211C),
+            Color(0xFFFFD700)
+        )
     )
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Panel de Entrenador", color = ProfessionalGoldPalette.AppBarContent) },
+                title = { Text("Panel de Entrenador", color = Color.White, fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = ProfessionalGoldPalette.AppBarBackground,
+                    containerColor = Color(0xFF181818),
                 ),
                 actions = {
                     IconButton(onClick = { trainerViewModel.fetchAllUsers() }) {
                         Icon(
                             imageVector = Icons.Filled.Refresh,
                             contentDescription = "Refrescar Lista",
-                            tint = ProfessionalGoldPalette.AppBarContent
+                            tint = Color(0xFFFFD700)
                         )
                     }
                     IconButton(onClick = {
                         authViewModel.logoutUser()
-                        // Considera añadir un log aquí si el logout también falla o para confirmar
-                        // Log.d("TrainerHomeScreen", "Logout action triggered")
                     }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ExitToApp,
                             contentDescription = "Cerrar Sesión",
-                            tint = ProfessionalGoldPalette.AppBarContent
+                            tint = Color(0xFFFFD700)
                         )
                     }
                 }
@@ -110,12 +85,12 @@ fun TrainerHomeScreen(
                 .background(brush = blackToGoldGradientBrush)
                 .padding(paddingValues)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(14.dp)) {
                 Text(
                     text = "Usuarios Registrados",
                     fontSize = 26.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = ProfessionalGoldPalette.TitleTextOnGradient,
+                    color = Color(0xFFFFD700),
                     modifier = Modifier.padding(bottom = 20.dp, top = 8.dp)
                 )
 
@@ -123,7 +98,7 @@ fun TrainerHomeScreen(
                     is UserListUiState.Loading -> {
                         CircularProgressIndicator(
                             modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 30.dp),
-                            color = ProfessionalGoldPalette.RichGold
+                            color = Color(0xFFFFD700)
                         )
                     }
                     is UserListUiState.Success -> {
@@ -131,17 +106,17 @@ fun TrainerHomeScreen(
                             Text(
                                 text = "No hay usuarios registrados.",
                                 modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 30.dp),
-                                color = ProfessionalGoldPalette.SoftGold,
+                                color = Color(0xFFE3C15B),
                                 fontSize = 18.sp,
                                 textAlign = TextAlign.Center
                             )
                         } else {
-                            UserList(users = state.users, navController = navController)
+                            UserListPro(users = state.users, navController = navController)
                         }
                     }
                     is UserListUiState.Error -> {
                         val errorTextStyle = MaterialTheme.typography.bodyLarge.copy(
-                            color = ProfessionalGoldPalette.ErrorTextColor,
+                            color = Color(0xFFFFA500),
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center
                         )
@@ -162,79 +137,91 @@ fun TrainerHomeScreen(
 }
 
 @Composable
-fun UserList(users: List<UserProfile>, navController: NavController) {
+fun UserListPro(users: List<UserProfile>, navController: NavController) {
     LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
         items(users) { user ->
-            UserItem(user = user, navController = navController)
+            UserItemPro(user = user, navController = navController)
         }
     }
 }
 
 @Composable
-fun UserItem(user: UserProfile, navController: NavController) {
+fun UserItemPro(user: UserProfile, navController: NavController) {
     val TAG = "UserItemClick" // Tag para filtrar en Logcat
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, ProfessionalGoldPalette.BorderColor, RoundedCornerShape(12.dp))
-            .clip(RoundedCornerShape(12.dp))
+            .shadow(12.dp, RoundedCornerShape(28.dp))
+            .border(2.dp, Color(0xFFFFD700), RoundedCornerShape(28.dp))
             .clickable {
-                Log.d(TAG, "UserItem clicked. User Name: ${user.fullName}, User Email: ${user.email}, User UID: '${user.uid}'") // LOG #1: Datos del usuario al hacer clic
+                Log.d(TAG, "UserItem clicked. User Name: ${user.fullName}, User Email: ${user.email}, User UID: '${user.uid}'")
                 if (user.uid.isNotBlank()) {
-                    Log.d(TAG, "UID is not blank. Navigating to trainer_user_detail/${user.uid}") // LOG #2: Confirmación antes de navegar
-                    try {
-                        navController.navigate("trainer_user_detail/${user.uid}")
-                        Log.d(TAG, "Navigation command sent.") // LOG #4: Después de intentar navegar
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Error during navigation", e) // LOG #5: En caso de error al navegar
-                    }
+                    navController.navigate("trainer_user_detail/${user.uid}")
                 } else {
-                    Log.w(TAG, "UID is blank. Navigation skipped. User Name: ${user.fullName}") // LOG #3: Si el UID está en blanco
+                    Log.w(TAG, "UID is blank. Navigation skipped. User Name: ${user.fullName}")
                 }
             },
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         colors = CardDefaults.cardColors(
-            containerColor = ProfessionalGoldPalette.CardBackground.copy(alpha = 0.92f)
+            containerColor = Color(0xFF1C1C1C).copy(alpha = 0.98f)
         )
     ) {
         Row(
             modifier = Modifier
-                .padding(16.dp)
+                .padding(20.dp)
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Default.AccountCircle,
-                contentDescription = "Icono de Usuario",
-                modifier = Modifier.size(48.dp),
-                tint = ProfessionalGoldPalette.IconTint
-            )
-            Spacer(modifier = Modifier.width(16.dp))
+            // Avatar con dorado
+            Box(
+                modifier = Modifier
+                    .size(58.dp)
+                    .background(Color(0xFFFFD700), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AccountCircle,
+                    contentDescription = "Icono de Usuario",
+                    modifier = Modifier.size(46.dp),
+                    tint = Color(0xFF23211C)
+                )
+            }
+            Spacer(modifier = Modifier.width(20.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = user.fullName.ifEmpty { "Nombre no disponible" },
                     fontWeight = FontWeight.Bold,
-                    fontSize = 19.sp,
-                    color = ProfessionalGoldPalette.TextPrimary
+                    fontSize = 18.sp,
+                    color = Color.White
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = user.email.ifEmpty { "Email no disponible" },
                     fontSize = 15.sp,
-                    color = ProfessionalGoldPalette.TextSecondary
+                    color = Color(0xFFEEE8BB)
                 )
                 if (user.role.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "Rol: ${user.role.uppercase()}",
-                        fontSize = 13.sp,
-                        color = ProfessionalGoldPalette.IconTint,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Spacer(modifier = Modifier.height(7.dp))
+                    // Badge dorado para el rol
+                    Box(
+                        modifier = Modifier
+                            .background(
+                                color = Color(0xFFFFD700),
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            .padding(horizontal = 10.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = user.role.uppercase(),
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF23211C),
+                            fontSize = 13.sp
+                        )
+                    }
                 }
             }
         }

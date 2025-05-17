@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -20,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -57,11 +59,12 @@ fun RecordUserProgressScreen(
 ) {
     val context = LocalContext.current
 
-    val blackToGoldGradientBrush = Brush.linearGradient(
+    // Cambia aquí a un degradado negro-oro PRO, sin depender del palette custom si quieres aún más "puro"
+    val blackToGoldGradientBrush = Brush.verticalGradient(
         colors = listOf(
-            ProfessionalGoldPalette.DeepBlack,
-            ProfessionalGoldPalette.MidGold,
-            ProfessionalGoldPalette.RichGold
+            Color(0xFF141414),
+            Color(0xFF23211C),
+            Color(0xFFFFD700)
         )
     )
 
@@ -69,7 +72,7 @@ fun RecordUserProgressScreen(
     var userName by remember { mutableStateOf("Cargando usuario...") }
     var userProfilePictureUrl by remember { mutableStateOf<String?>(null) }
 
-    var overallRating by remember { mutableIntStateOf(0) } // Usar mutableIntStateOf
+    var overallRating by remember { mutableIntStateOf(0) }
     var generalFeedback by remember { mutableStateOf("") }
 
     val categoriesState = remember {
@@ -115,18 +118,24 @@ fun RecordUserProgressScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Registro de Progreso Semanal", color = ProfessionalGoldPalette.AppBarContent) },
+                title = {
+                    Text(
+                        "Registro de Progreso Semanal",
+                        color = Color(0xFFFFD700),
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
-                            tint = ProfessionalGoldPalette.AppBarContent
+                            tint = Color(0xFFFFD700)
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = ProfessionalGoldPalette.AppBarBackground,
+                    containerColor = Color(0xFF181818)
                 )
             )
         }
@@ -157,7 +166,7 @@ fun RecordUserProgressScreen(
                             modifier = Modifier
                                 .size(100.dp)
                                 .clip(CircleShape)
-                                .background(ProfessionalGoldPalette.SoftGold.copy(alpha = 0.2f)),
+                                .background(Color(0xFFFFD700).copy(alpha = 0.22f)),
                             contentScale = ContentScale.Crop
                         )
                     } else {
@@ -167,9 +176,9 @@ fun RecordUserProgressScreen(
                             modifier = Modifier
                                 .size(100.dp)
                                 .clip(CircleShape)
-                                .background(ProfessionalGoldPalette.SoftGold.copy(alpha = 0.2f))
+                                .background(Color(0xFFFFD700).copy(alpha = 0.22f))
                                 .padding(8.dp),
-                            tint = ProfessionalGoldPalette.RichGold
+                            tint = Color(0xFFFFD700)
                         )
                     }
                     Spacer(modifier = Modifier.height(8.dp))
@@ -177,35 +186,35 @@ fun RecordUserProgressScreen(
                         text = userName.uppercase(),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = ProfessionalGoldPalette.TitleTextOnGradient,
+                        color = Color.White,
                         textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                 }
 
                 item {
-                    RatingSectionCard(title = "Valoración General del Coach") {
+                    RatingSectionCardPro(title = "Valoración General del Coach") {
                         InteractiveStarRatingInput(
                             currentRating = overallRating,
-                            onRatingChange = { rating -> overallRating = rating }, // 'rating' se usa
+                            onRatingChange = { rating -> overallRating = rating },
                             starSize = 40.dp,
-                            selectedColor = ProfessionalGoldPalette.RichGold,
-                            unselectedColor = ProfessionalGoldPalette.MidGold.copy(alpha = 0.5f)
+                            selectedColor = Color(0xFFFFD700),
+                            unselectedColor = Color(0xFFEEE8BB).copy(alpha = 0.4f)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
                             value = generalFeedback,
-                            onValueChange = { feedback -> generalFeedback = feedback }, // 'feedback' se usa
-                            label = { Text("Feedback General", color = ProfessionalGoldPalette.TextSecondary) },
+                            onValueChange = { feedback -> generalFeedback = feedback },
+                            label = { Text("Feedback General", color = Color(0xFFFFD700)) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = ProfessionalGoldPalette.RichGold,
-                                unfocusedBorderColor = ProfessionalGoldPalette.BorderColor,
-                                cursorColor = ProfessionalGoldPalette.RichGold,
-                                focusedTextColor = ProfessionalGoldPalette.TextPrimary,
-                                unfocusedTextColor = ProfessionalGoldPalette.TextPrimary,
-                                focusedLabelColor = ProfessionalGoldPalette.RichGold,
-                                unfocusedLabelColor = ProfessionalGoldPalette.TextSecondary,
+                                focusedBorderColor = Color(0xFFFFD700),
+                                unfocusedBorderColor = Color(0xFFEEE8BB),
+                                cursorColor = Color(0xFFFFD700),
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedLabelColor = Color(0xFFFFD700),
+                                unfocusedLabelColor = Color(0xFFEEE8BB),
                             ),
                             keyboardOptions = KeyboardOptions(
                                 capitalization = KeyboardCapitalization.Sentences,
@@ -219,34 +228,34 @@ fun RecordUserProgressScreen(
                 }
 
                 itemsIndexed(categoriesState) { index, category ->
-                    RatingSectionCard(title = category.categoryName) {
+                    RatingSectionCardPro(title = category.categoryName) {
                         InteractiveStarRatingInput(
                             currentRating = category.rating,
-                            onRatingChange = { newRating -> // Parámetro 'newRating' se usa aquí
+                            onRatingChange = { newRating ->
                                 val updatedCategory = categoriesState[index].copy(rating = newRating)
                                 categoriesState[index] = updatedCategory
                             },
                             starSize = 36.dp,
-                            selectedColor = ProfessionalGoldPalette.RichGold,
-                            unselectedColor = ProfessionalGoldPalette.MidGold.copy(alpha = 0.5f)
+                            selectedColor = Color(0xFFFFD700),
+                            unselectedColor = Color(0xFFEEE8BB).copy(alpha = 0.4f)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
                             value = category.notes,
-                            onValueChange = { newNotes -> // Parámetro 'newNotes' se usa aquí
+                            onValueChange = { newNotes ->
                                 val updatedCategory = categoriesState[index].copy(notes = newNotes)
                                 categoriesState[index] = updatedCategory
                             },
-                            label = { Text("Notas para ${category.categoryName}", color = ProfessionalGoldPalette.TextSecondary) },
+                            label = { Text("Notas para ${category.categoryName}", color = Color(0xFFFFD700)) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = ProfessionalGoldPalette.RichGold,
-                                unfocusedBorderColor = ProfessionalGoldPalette.BorderColor,
-                                cursorColor = ProfessionalGoldPalette.RichGold,
-                                focusedTextColor = ProfessionalGoldPalette.TextPrimary,
-                                unfocusedTextColor = ProfessionalGoldPalette.TextPrimary,
-                                focusedLabelColor = ProfessionalGoldPalette.RichGold,
-                                unfocusedLabelColor = ProfessionalGoldPalette.TextSecondary,
+                                focusedBorderColor = Color(0xFFFFD700),
+                                unfocusedBorderColor = Color(0xFFEEE8BB),
+                                cursorColor = Color(0xFFFFD700),
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedLabelColor = Color(0xFFFFD700),
+                                unfocusedLabelColor = Color(0xFFEEE8BB),
                             ),
                             keyboardOptions = KeyboardOptions(
                                 capitalization = KeyboardCapitalization.Sentences,
@@ -292,16 +301,17 @@ fun RecordUserProgressScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = ProfessionalGoldPalette.RichGold,
-                            contentColor = ProfessionalGoldPalette.DeepBlack
+                            containerColor = Color(0xFFFFD700),
+                            contentColor = Color(0xFF181818)
                         )
                     ) {
                         Icon(
                             imageVector = Icons.Filled.CheckCircle,
                             contentDescription = "Guardar",
-                            modifier = Modifier.size(ButtonDefaults.IconSize)
+                            modifier = Modifier.size(ButtonDefaults.IconSize),
+                            tint = Color(0xFF181818)
                         )
                         Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
                         Text("Guardar Progreso", fontWeight = FontWeight.Bold)
@@ -313,33 +323,35 @@ fun RecordUserProgressScreen(
     }
 }
 
+// Card visual con solo cambios de color, respeta tu lógica
 @Composable
-fun RatingSectionCard(
+fun RatingSectionCardPro(
     title: String,
-    content: @Composable ColumnScope.() -> Unit // Lambda es @Composable
+    content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = ProfessionalGoldPalette.CardBackground.copy(alpha = 0.85f)
+            containerColor = Color(0xFF181818).copy(alpha = 0.93f)
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        border = androidx.compose.foundation.BorderStroke(2.dp, Color(0xFFFFD700)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
-        Column( // Column es un @Composable, su scope es ColumnScope
+        Column(
             modifier = Modifier
                 .padding(16.dp)
                 .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text( // @Composable
+            Text(
                 text = title,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = ProfessionalGoldPalette.TextPrimary,
+                color = Color(0xFFFFD700),
                 modifier = Modifier.padding(bottom = 12.dp)
             )
-            content() // Llama a la lambda @Composable 'content'
+            content()
         }
     }
 }
