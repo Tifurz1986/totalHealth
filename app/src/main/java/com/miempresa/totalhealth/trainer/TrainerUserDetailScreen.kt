@@ -1,6 +1,7 @@
 package com.miempresa.totalhealth.trainer
 
 import android.annotation.SuppressLint
+import android.util.Log // Asegúrate de importar Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -12,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Edit // Icono para editar/registrar progreso
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Height
@@ -19,7 +21,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Scale
 import androidx.compose.material.icons.filled.Work
-import androidx.compose.material3.* // Contiene HorizontalDivider
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -43,26 +45,27 @@ import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.miempresa.totalhealth.R
 import com.miempresa.totalhealth.auth.UserProfile
-import com.miempresa.totalhealth.ui.menu.theme.ProfessionalGoldPalette // Asegúrate que esta importación es correcta
+import com.miempresa.totalhealth.ui.menu.theme.ProfessionalGoldPalette
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.Date
-
-// NO DEBE HABER NINGUNA DEFINICIÓN DE 'object ProfessionalGoldPalette { ... }' EN ESTE ARCHIVO.
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TrainerUserDetailScreen(
     navController: NavController,
-    userId: String?,
+    userId: String?, // Este userId es el del perfil que se está viendo
     viewModel: TrainerUserDetailViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(userId) {
         if (!userId.isNullOrBlank()) {
+            Log.d("TrainerUserDetailScreen", "Fetching profile for userId: $userId")
             viewModel.fetchUserProfile(userId)
+        } else {
+            Log.w("TrainerUserDetailScreen", "userId is null or blank. Cannot fetch profile.")
         }
     }
 
@@ -71,9 +74,7 @@ fun TrainerUserDetailScreen(
             ProfessionalGoldPalette.DeepBlack,
             ProfessionalGoldPalette.MidGold,
             ProfessionalGoldPalette.RichGold
-        ),
-        start = androidx.compose.ui.geometry.Offset(0f, 0f),
-        end = androidx.compose.ui.geometry.Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+        )
     )
 
     Scaffold(
@@ -87,6 +88,20 @@ fun TrainerUserDetailScreen(
                             contentDescription = "Volver",
                             tint = ProfessionalGoldPalette.AppBarContent
                         )
+                    }
+                },
+                actions = { // ACCIONES EN LA TOPAPPBAR
+                    if (!userId.isNullOrBlank()) { // Solo mostrar si tenemos un userId
+                        IconButton(onClick = {
+                            Log.d("TrainerUserDetailScreen", "Navigating to record_user_progress for userId: $userId")
+                            navController.navigate("record_user_progress/$userId")
+                        }) {
+                            Icon(
+                                imageVector = Icons.Filled.Edit, // O un ícono más específico para "progreso"
+                                contentDescription = "Registrar Progreso",
+                                tint = ProfessionalGoldPalette.AppBarContent
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -103,15 +118,18 @@ fun TrainerUserDetailScreen(
         ) {
             when (val state = uiState) {
                 is UserProfileDetailUiState.Loading -> {
+                    Log.d("TrainerUserDetailScreen", "Displaying Loading state")
                     CircularProgressIndicator(
                         modifier = Modifier.align(Alignment.Center),
                         color = ProfessionalGoldPalette.RichGold
                     )
                 }
                 is UserProfileDetailUiState.Success -> {
+                    Log.d("TrainerUserDetailScreen", "Displaying Success state for UserProfile: ${state.userProfile.email}")
                     UserProfileContent(userProfile = state.userProfile)
                 }
                 is UserProfileDetailUiState.Error -> {
+                    Log.e("TrainerUserDetailScreen", "Displaying Error state: ${state.message}")
                     Text(
                         text = state.message,
                         modifier = Modifier
@@ -128,6 +146,7 @@ fun TrainerUserDetailScreen(
                 }
                 is UserProfileDetailUiState.Idle -> {
                     if (userId.isNullOrBlank()) {
+                        Log.w("TrainerUserDetailScreen", "Displaying Idle state: userId is null or blank")
                         Text(
                             "ID de usuario no proporcionado o inválido.",
                             modifier = Modifier.align(Alignment.Center).padding(16.dp),
@@ -135,6 +154,12 @@ fun TrainerUserDetailScreen(
                             textAlign = TextAlign.Center,
                             fontSize = 18.sp
                         )
+                    } else {
+                        Log.d("TrainerUserDetailScreen", "Displaying Idle state (profile not yet loaded for $userId, or ViewModel did not find it)")
+                        // Podrías mostrar un texto indicando que se está cargando o que no se encontró
+                        // si el LaunchedEffect ya se disparó. Por ahora se queda como estaba.
+                        // Si el ViewModel emitió Error, se mostrará el mensaje de error.
+                        // Si aún no se ha llamado a fetchUserProfile o está en proceso, se verá Loading o nada.
                     }
                 }
             }
@@ -157,8 +182,8 @@ fun UserProfileContent(userProfile: UserProfile) {
                     .data(data = userProfile.profilePictureUrl)
                     .apply(block = fun ImageRequest.Builder.() {
                         crossfade(true)
-                        placeholder(R.drawable.ic_launcher_background)
-                        error(R.drawable.ic_launcher_foreground)
+                        placeholder(R.drawable.ic_default_profile_placeholder) // CAMBIAR POR UN PLACEHOLDER REAL
+                        error(R.drawable.ic_default_profile_placeholder) // CAMBIAR POR UN ICONO DE ERROR/PLACEHOLDER REAL
                     }).build()
             )
         } else {
@@ -228,6 +253,7 @@ fun UserProfileContent(userProfile: UserProfile) {
                     DetailItem(icon = Icons.Filled.Info, label = "Objetivos de Salud", value = userProfile.healthGoals, isMultiline = true)
                 }
                 userProfile.createdAt?.let { date ->
+                    // Corrección en SimpleDateFormat: yyyy para el año
                     val dateFormat = SimpleDateFormat("dd 'de' MMMM 'de' yyyy", Locale("es", "ES"))
                     DetailItem(icon = Icons.Filled.CalendarToday, label = "Miembro desde", value = dateFormat.format(date))
                 }
@@ -267,7 +293,6 @@ fun DetailItem(icon: ImageVector, label: String, value: String, isMultiline: Boo
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
-        // Reemplazar Divider por HorizontalDivider
         HorizontalDivider(
             thickness = 0.5.dp,
             color = ProfessionalGoldPalette.BorderColor.copy(alpha = 0.2f)

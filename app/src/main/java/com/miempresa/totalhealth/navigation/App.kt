@@ -21,6 +21,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.miempresa.totalhealth.foodreport.FoodReportScreen
+// Asegúrate de importar la nueva pantalla
+import com.miempresa.totalhealth.progress.RecordUserProgressScreen
 import com.miempresa.totalhealth.progress.ProgressScreen
 import com.miempresa.totalhealth.settings.SettingsScreen
 import com.miempresa.totalhealth.auth.AuthAndRoleUiState
@@ -66,7 +68,7 @@ fun AppNavigation() { // <--- RENOMBRADA DE App() A AppNavigation()
                 }
             }
             is AuthAndRoleUiState.Idle -> {
-                if (currentRoute != "login" && currentRoute != "register") {
+                if (currentRoute != "login" && currentRoute != "register" && !currentRoute.isNullOrEmpty()) { // Modificado para no navegar desde rutas vacías/nulas
                     Log.d("AppNavigationEffect", "User not authenticated (State: Idle). Current route: $currentRoute. Navigating to login.")
                     navController.navigate("login") {
                         popUpTo(navController.graph.id) { inclusive = true }
@@ -77,7 +79,6 @@ fun AppNavigation() { // <--- RENOMBRADA DE App() A AppNavigation()
             is AuthAndRoleUiState.Error -> {
                 if (currentRoute != "login" && currentRoute != "register") {
                     Log.d("AppNavigationEffect", "Error state, navigating to login from $currentRoute")
-                    // authViewModel.resetState() // Considera si quieres resetear el estado aquí o dejar que la pantalla de login lo maneje
                     navController.navigate("login") {
                         popUpTo(navController.graph.id) { inclusive = true }
                         launchSingleTop = true
@@ -121,8 +122,20 @@ fun AppNavigation() { // <--- RENOMBRADA DE App() A AppNavigation()
             )
         }
 
+        // NUEVA RUTA AÑADIDA AQUÍ
+        composable(
+            route = "record_user_progress/{userId}",
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId")
+            RecordUserProgressScreen( // Llama a la nueva pantalla
+                navController = navController,
+                userId = userId
+            )
+        }
+
         composable("food_report") { FoodReportScreen(navController) }
-        composable("progress_screen") { ProgressScreen(navController) }
+        composable("progress_screen") { ProgressScreen(navController) } // Esta es la pantalla de progreso general
         composable("settings_screen") { SettingsScreen(navController) }
         composable("edit_profile_screen") { EditProfileScreen(navController, authViewModel) }
         composable("daily_log_screen") { DailyLogScreen(navController) }

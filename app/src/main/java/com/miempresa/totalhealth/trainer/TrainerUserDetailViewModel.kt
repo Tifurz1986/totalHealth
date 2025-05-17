@@ -6,66 +6,83 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
-import com.miempresa.totalhealth.auth.UserProfile // Se utiliza la definición consolidada de UserProfile
+import com.miempresa.totalhealth.auth.UserProfile // Asegúrate que esta es la ruta correcta
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
-// Define los estados posibles para la UI de detalle del perfil de usuario
+// Estados de la UI para el detalle del perfil del usuario
 sealed class UserProfileDetailUiState {
-    object Idle : UserProfileDetailUiState() // Estado inicial o cuando no hay operación en curso
-    object Loading : UserProfileDetailUiState() // Estado mientras se cargan los datos
-    data class Success(val userProfile: UserProfile) : UserProfileDetailUiState() // Estado cuando los datos se cargan con éxito
-    data class Error(val message: String) : UserProfileDetailUiState() // Estado cuando ocurre un error
+    object Idle : UserProfileDetailUiState() // Estado inicial o si no hay userId
+    object Loading : UserProfileDetailUiState()
+    data class Success(val userProfile: UserProfile) : UserProfileDetailUiState()
+    data class Error(val message: String) : UserProfileDetailUiState()
 }
 
 class TrainerUserDetailViewModel : ViewModel() {
 
-    private val db: FirebaseFirestore = Firebase.firestore // Instancia de Firestore
+    private val db: FirebaseFirestore = Firebase.firestore
+    private val TAG = "TrainerUserDetailVM" // Para logs
 
-    // Flujo mutable privado para el estado de la UI, expuesto como StateFlow inmutable
     private val _uiState = MutableStateFlow<UserProfileDetailUiState>(UserProfileDetailUiState.Idle)
     val uiState: StateFlow<UserProfileDetailUiState> = _uiState.asStateFlow()
 
-    /**
-     * Obtiene el perfil de un usuario específico desde Firestore basado en su UID.
-     * @param userId El ID único del usuario a obtener.
-     */
-    fun fetchUserProfile(userId: String) {
-        // Verifica si el userId es válido
-        if (userId.isBlank()) {
+    fun fetchUserProfile(userId: String?) {
+        if (userId.isNullOrBlank()) {
+            Log.w(TAG, "fetchUserProfile called with null or blank userId.")
             _uiState.value = UserProfileDetailUiState.Error("ID de usuario inválido.")
-            Log.w("TrainerUserDetailVM", "fetchUserProfile llamado con userId vacío.")
             return
         }
 
-        Log.d("TrainerUserDetailVM", "Fetching profile for userId: $userId")
-        _uiState.value = UserProfileDetailUiState.Loading // Actualiza el estado a Cargando
+        _uiState.value = UserProfileDetailUiState.Loading
+        Log.d(TAG, "Fetching profile by field query for UID: $userId")
 
-        viewModelScope.launch { // Inicia una corrutina en el ámbito del ViewModel
+        viewModelScope.launch {
             try {
-                // Obtiene el documento del usuario desde la colección "users"
-                val documentSnapshot = db.collection("users").document(userId).get().await()
+                val querySnapshot = db.collection("users")
+                    .whereEqualTo("uid", userId) // <<--- CAMBIO PRINCIPAL: Buscar por el campo "uid"
+                    .limit(1) // Esperamos como máximo un resultado
+                    .get()
+                    .await()
 
-                if (documentSnapshot.exists()) { // Si el documento existe
-                    // Convierte el documento a un objeto UserProfile
-                    val userProfile = documentSnapshot.toObject(UserProfile::class.java)
+                if (!querySnapshot.isEmpty) {
+                    val documentSnapshot = querySnapshot.documents[0] // Tomamos el primer documento encontrado
+                    Log.d(TAG, "Document found with ID: ${documentSnapshot.id} for UID query: $userId")
+
+                    // Asegurarse de que el documento no sea nulo y convertirlo
+                    var userProfile = documentSnapshot.toObject(UserProfile::class.java)
+
+                    // Es buena práctica asegurar valores no nulos para campos String si la data class los espera así,
+                    // aunque UserProfile.kt ya tiene valores por defecto para Strings.
+                    // Esto es más relevante si tuvieras String? y quisieras "" por defecto en la UI.
+                    userProfile = userProfile?.copy(
+                        name = userProfile.name ?: "",
+                        surname = userProfile.surname ?: "",
+                        email = userProfile.email ?: "", // Aunque email no debería ser null
+                        sex = userProfile.sex ?: "",
+                        activityLevel = userProfile.activityLevel ?: "",
+                        healthGoals = userProfile.healthGoals ?: "",
+                        role = userProfile.role.ifEmpty { "USER" } // Asegurar un rol por defecto
+                        // No es necesario tocar profilePictureUrl, age, height, weight, createdAt, uid aquí,
+                        // ya que UserProfile.kt maneja sus valores por defecto/nulabilidad.
+                    )
+
                     if (userProfile != null) {
-                        _uiState.value = UserProfileDetailUiState.Success(userProfile) // Éxito
-                        Log.i("TrainerUserDetailVM", "Successfully fetched profile for $userId")
+                        Log.d(TAG, "Successfully fetched and converted profile. Emitting Success state: $userProfile")
+                        _uiState.value = UserProfileDetailUiState.Success(userProfile)
                     } else {
-                        _uiState.value = UserProfileDetailUiState.Error("No se pudieron convertir los datos del perfil.")
-                        Log.e("TrainerUserDetailVM", "Failed to convert Firestore document to UserProfile for $userId")
+                        Log.e(TAG, "Failed to convert Firestore document to UserProfile for UID: $userId (document ID: ${documentSnapshot.id})")
+                        _uiState.value = UserProfileDetailUiState.Error("Error al procesar datos del perfil para UID: $userId")
                     }
                 } else {
-                    _uiState.value = UserProfileDetailUiState.Error("Perfil de usuario no encontrado.")
-                    Log.w("TrainerUserDetailVM", "No profile document found for $userId")
+                    Log.w(TAG, "No profile document found with 'uid' field matching: $userId")
+                    _uiState.value = UserProfileDetailUiState.Error("Perfil de usuario no encontrado con UID: $userId")
                 }
-            } catch (e: Exception) { // Captura cualquier excepción durante la obtención de datos
+            } catch (e: Exception) {
+                Log.e(TAG, "EXCEPTION while fetching profile by field query for UID $userId: ${e.message}", e)
                 _uiState.value = UserProfileDetailUiState.Error("Error al cargar el perfil: ${e.localizedMessage}")
-                Log.e("TrainerUserDetailVM", "Error fetching profile for $userId: ${e.message}", e)
             }
         }
     }

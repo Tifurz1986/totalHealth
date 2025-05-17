@@ -1,7 +1,7 @@
 package com.miempresa.totalhealth.trainer
 
-// VERIFICA TUS IMPORTACIONES AQUÍ. DEBEN ESTAR TODAS LAS NECESARIAS.
 import android.annotation.SuppressLint
+import android.util.Log // Importante: Añadir import para Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,7 +30,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme // Asegúrate que MaterialTheme está importado si lo usas para errorTextStyle
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -52,11 +52,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.miempresa.totalhealth.auth.AuthViewModel
 import com.miempresa.totalhealth.auth.UserProfile
-// ESTA ES LA IMPORTACIÓN CRUCIAL. ASEGÚRATE DE QUE ES LA ÚNICA RELACIONADA CON ProfessionalGoldPalette
 import com.miempresa.totalhealth.ui.menu.theme.ProfessionalGoldPalette
-
-// NO DEBE HABER NINGUNA DEFINICIÓN DE 'object ProfessionalGoldPalette { ... }' EN ESTE ARCHIVO.
-// SI VES UNA, BORRALA COMPLETAMENTE.
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -70,7 +66,7 @@ fun TrainerHomeScreen(
 
     val blackToGoldGradientBrush = Brush.linearGradient(
         colors = listOf(
-            ProfessionalGoldPalette.DeepBlack, // Esto debe resolverse desde la importación
+            ProfessionalGoldPalette.DeepBlack,
             ProfessionalGoldPalette.MidGold,
             ProfessionalGoldPalette.RichGold
         ),
@@ -95,6 +91,8 @@ fun TrainerHomeScreen(
                     }
                     IconButton(onClick = {
                         authViewModel.logoutUser()
+                        // Considera añadir un log aquí si el logout también falla o para confirmar
+                        // Log.d("TrainerHomeScreen", "Logout action triggered")
                     }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ExitToApp,
@@ -177,14 +175,25 @@ fun UserList(users: List<UserProfile>, navController: NavController) {
 
 @Composable
 fun UserItem(user: UserProfile, navController: NavController) {
+    val TAG = "UserItemClick" // Tag para filtrar en Logcat
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .border(1.dp, ProfessionalGoldPalette.BorderColor, RoundedCornerShape(12.dp))
             .clip(RoundedCornerShape(12.dp))
             .clickable {
+                Log.d(TAG, "UserItem clicked. User Name: ${user.fullName}, User Email: ${user.email}, User UID: '${user.uid}'") // LOG #1: Datos del usuario al hacer clic
                 if (user.uid.isNotBlank()) {
-                    navController.navigate("trainer_user_detail/${user.uid}")
+                    Log.d(TAG, "UID is not blank. Navigating to trainer_user_detail/${user.uid}") // LOG #2: Confirmación antes de navegar
+                    try {
+                        navController.navigate("trainer_user_detail/${user.uid}")
+                        Log.d(TAG, "Navigation command sent.") // LOG #4: Después de intentar navegar
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error during navigation", e) // LOG #5: En caso de error al navegar
+                    }
+                } else {
+                    Log.w(TAG, "UID is blank. Navigation skipped. User Name: ${user.fullName}") // LOG #3: Si el UID está en blanco
                 }
             },
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
