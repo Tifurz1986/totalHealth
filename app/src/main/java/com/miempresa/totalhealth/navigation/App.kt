@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -21,7 +22,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.miempresa.totalhealth.foodreport.FoodReportScreen
-// Asegúrate de importar la nueva pantalla
 import com.miempresa.totalhealth.progress.RecordUserProgressScreen
 import com.miempresa.totalhealth.progress.ProgressScreen
 import com.miempresa.totalhealth.settings.SettingsScreen
@@ -32,14 +32,54 @@ import com.miempresa.totalhealth.auth.RegisterScreen
 import com.miempresa.totalhealth.auth.UserRole
 import com.miempresa.totalhealth.ui.HomeScreen
 import com.miempresa.totalhealth.settings.EditProfileScreen
-import com.miempresa.totalhealth.dailylog.DailyLogScreen
+import com.miempresa.totalhealth.dailylog.DailyLogScreen // Pantalla de usuario para registrar
 import com.miempresa.totalhealth.journal.ImprovementJournalScreen
 import com.miempresa.totalhealth.journal.AddEditImprovementEntryScreen
 import com.miempresa.totalhealth.trainer.TrainerHomeScreen
 import com.miempresa.totalhealth.trainer.TrainerUserDetailScreen
+import com.miempresa.totalhealth.trainer.history.food.UserFoodReportHistoryScreen
+import com.miempresa.totalhealth.trainer.history.journal.UserImprovementJournalHistoryScreen
+// --- IMPORTACIÓN PARA NUEVA PANTALLA DE HISTORIAL DE REGISTROS DIARIOS ---
+import com.miempresa.totalhealth.trainer.history.dailylog.UserDailyLogHistoryScreen
+// --- FIN DE IMPORTACIÓN ---
+
+object AppRoutes {
+    const val LOGIN = "login"
+    const val REGISTER = "register"
+    const val HOME_USER = "home_user"
+    const val HOME_ADMIN = "home_admin"
+    const val HOME_TRAINER = "home_trainer"
+    const val TRAINER_USER_DETAIL = "trainer_user_detail/{userId}"
+    const val RECORD_USER_PROGRESS = "record_user_progress/{userId}"
+    const val FOOD_REPORT = "food_report"
+    const val PROGRESS_SCREEN = "progress_screen"
+    const val SETTINGS_SCREEN = "settings_screen"
+    const val EDIT_PROFILE_SCREEN = "edit_profile_screen"
+    const val DAILY_LOG_SCREEN = "daily_log_screen" // Pantalla del usuario para registrar
+    const val IMPROVEMENT_JOURNAL_SCREEN = "improvement_journal_screen"
+    const val ADD_EDIT_IMPROVEMENT_ENTRY_SCREEN = "add_edit_improvement_entry_screen"
+    const val ADD_EDIT_IMPROVEMENT_ENTRY_SCREEN_WITH_ID = "add_edit_improvement_entry_screen/{entryId}"
+
+    const val USER_FOOD_REPORT_HISTORY = "user_food_report_history/{userId}"
+    const val USER_IMPROVEMENT_JOURNAL_HISTORY = "user_improvement_journal_history/{userId}"
+    // --- NUEVA RUTA PARA HISTORIAL DE REGISTROS DIARIOS ---
+    const val USER_DAILY_LOG_HISTORY = "user_daily_log_history/{userId}"
+    // --- FIN DE NUEVA RUTA ---
+
+    fun trainerUserDetail(userId: String) = "trainer_user_detail/$userId"
+    fun recordUserProgress(userId: String) = "record_user_progress/$userId"
+    fun addEditImprovementEntry(entryId: String? = null) =
+        if (entryId != null) "add_edit_improvement_entry_screen/$entryId"
+        else "add_edit_improvement_entry_screen"
+    fun userFoodReportHistory(userId: String) = "user_food_report_history/$userId"
+    fun userImprovementJournalHistory(userId: String) = "user_improvement_journal_history/$userId"
+    // --- FUNCIÓN PARA NUEVA RUTA ---
+    fun userDailyLogHistory(userId: String) = "user_daily_log_history/$userId"
+    // --- FIN DE FUNCIÓN ---
+}
 
 @Composable
-fun AppNavigation() { // <--- RENOMBRADA DE App() A AppNavigation()
+fun AppNavigation() {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = viewModel()
     val authUiState by authViewModel.authAndRoleUiState.collectAsState()
@@ -53,12 +93,12 @@ fun AppNavigation() { // <--- RENOMBRADA DE App() A AppNavigation()
 
         when (currentAuthState) {
             is AuthAndRoleUiState.Authenticated -> {
-                if (currentRoute == "login" || currentRoute == "register") {
+                if (currentRoute == AppRoutes.LOGIN || currentRoute == AppRoutes.REGISTER) {
                     val destination = when (currentAuthState.role) {
-                        UserRole.ADMIN -> "home_admin"
-                        UserRole.TRAINER -> "home_trainer"
-                        UserRole.USER -> "home_user"
-                        UserRole.UNKNOWN, UserRole.LOADING_ROLE -> "home_user" // Default a home_user
+                        UserRole.ADMIN -> AppRoutes.HOME_ADMIN
+                        UserRole.TRAINER -> AppRoutes.HOME_TRAINER
+                        UserRole.USER -> AppRoutes.HOME_USER
+                        UserRole.UNKNOWN, UserRole.LOADING_ROLE -> AppRoutes.HOME_USER
                     }
                     Log.d("AppNavigationEffect", "User authenticated on $currentRoute. Navigating to $destination.")
                     navController.navigate(destination) {
@@ -68,18 +108,18 @@ fun AppNavigation() { // <--- RENOMBRADA DE App() A AppNavigation()
                 }
             }
             is AuthAndRoleUiState.Idle -> {
-                if (currentRoute != "login" && currentRoute != "register" && !currentRoute.isNullOrEmpty()) { // Modificado para no navegar desde rutas vacías/nulas
+                if (currentRoute != AppRoutes.LOGIN && currentRoute != AppRoutes.REGISTER && !currentRoute.isNullOrEmpty()) {
                     Log.d("AppNavigationEffect", "User not authenticated (State: Idle). Current route: $currentRoute. Navigating to login.")
-                    navController.navigate("login") {
+                    navController.navigate(AppRoutes.LOGIN) {
                         popUpTo(navController.graph.id) { inclusive = true }
                         launchSingleTop = true
                     }
                 }
             }
             is AuthAndRoleUiState.Error -> {
-                if (currentRoute != "login" && currentRoute != "register") {
+                if (currentRoute != AppRoutes.LOGIN && currentRoute != AppRoutes.REGISTER) {
                     Log.d("AppNavigationEffect", "Error state, navigating to login from $currentRoute")
-                    navController.navigate("login") {
+                    navController.navigate(AppRoutes.LOGIN) {
                         popUpTo(navController.graph.id) { inclusive = true }
                         launchSingleTop = true
                     }
@@ -91,12 +131,12 @@ fun AppNavigation() { // <--- RENOMBRADA DE App() A AppNavigation()
         }
     }
 
-    NavHost(navController = navController, startDestination = "login") {
-        composable("login") { LoginScreen(navController, authViewModel) }
-        composable("register") { RegisterScreen(navController, authViewModel) }
+    NavHost(navController = navController, startDestination = AppRoutes.LOGIN) {
+        composable(AppRoutes.LOGIN) { LoginScreen(navController, authViewModel) }
+        composable(AppRoutes.REGISTER) { RegisterScreen(navController, authViewModel) }
 
-        composable("home_user") { HomeScreen(navController, authViewModel) }
-        composable("home_admin") {
+        composable(AppRoutes.HOME_USER) { HomeScreen(navController, authViewModel) }
+        composable(AppRoutes.HOME_ADMIN) {
             Log.d("NavHost", "Navigated to home_admin (placeholder).")
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -107,12 +147,12 @@ fun AppNavigation() { // <--- RENOMBRADA DE App() A AppNavigation()
                 }
             }
         }
-        composable("home_trainer") {
+        composable(AppRoutes.HOME_TRAINER) {
             TrainerHomeScreen(navController = navController, authViewModel = authViewModel)
         }
 
         composable(
-            route = "trainer_user_detail/{userId}",
+            route = AppRoutes.TRAINER_USER_DETAIL,
             arguments = listOf(navArgument("userId") { type = NavType.StringType })
         ) { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId")
@@ -122,38 +162,75 @@ fun AppNavigation() { // <--- RENOMBRADA DE App() A AppNavigation()
             )
         }
 
-        // NUEVA RUTA AÑADIDA AQUÍ
         composable(
-            route = "record_user_progress/{userId}",
-            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+            route = AppRoutes.RECORD_USER_PROGRESS,
+            arguments = listOf(navArgument("userId") { type = NavType.StringType; nullable = true })
         ) { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId")
-            RecordUserProgressScreen( // Llama a la nueva pantalla
+            RecordUserProgressScreen(
                 navController = navController,
                 userId = userId
             )
         }
 
-        composable("food_report") { FoodReportScreen(navController) }
-        composable("progress_screen") { ProgressScreen(navController) } // Esta es la pantalla de progreso general
-        composable("settings_screen") { SettingsScreen(navController) }
-        composable("edit_profile_screen") { EditProfileScreen(navController, authViewModel) }
-        composable("daily_log_screen") { DailyLogScreen(navController) }
+        composable(AppRoutes.FOOD_REPORT) { FoodReportScreen(navController) }
+        composable(AppRoutes.PROGRESS_SCREEN) { ProgressScreen(navController) }
+        composable(AppRoutes.SETTINGS_SCREEN) { SettingsScreen(navController) }
+        composable(AppRoutes.EDIT_PROFILE_SCREEN) { EditProfileScreen(navController, authViewModel) }
+        composable(AppRoutes.DAILY_LOG_SCREEN) { DailyLogScreen(navController) }
 
-        composable("improvement_journal_screen") {
+        composable(AppRoutes.IMPROVEMENT_JOURNAL_SCREEN) {
             ImprovementJournalScreen(navController = navController)
         }
-        composable("add_edit_improvement_entry_screen") {
+        composable(AppRoutes.ADD_EDIT_IMPROVEMENT_ENTRY_SCREEN) {
             AddEditImprovementEntryScreen(navController = navController, entryId = null)
         }
         composable(
-            route = "add_edit_improvement_entry_screen/{entryId}",
-            arguments = listOf(navArgument("entryId") { type = NavType.StringType; nullable = true })
+            route = AppRoutes.ADD_EDIT_IMPROVEMENT_ENTRY_SCREEN_WITH_ID,
+            arguments = listOf(navArgument("entryId") { type = NavType.StringType; })
         ) { backStackEntry ->
             AddEditImprovementEntryScreen(
                 navController = navController,
                 entryId = backStackEntry.arguments?.getString("entryId")
             )
         }
+
+        composable(
+            route = AppRoutes.USER_FOOD_REPORT_HISTORY,
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId")
+            if (userId != null) {
+                UserFoodReportHistoryScreen(navController = navController, userId = userId)
+            } else {
+                Text("Error: User ID no encontrado para historial de comida.")
+            }
+        }
+
+        composable(
+            route = AppRoutes.USER_IMPROVEMENT_JOURNAL_HISTORY,
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId")
+            if (userId != null) {
+                UserImprovementJournalHistoryScreen(navController = navController, userId = userId)
+            } else {
+                Text("Error: User ID no encontrado para historial de diario.")
+            }
+        }
+
+        // --- NAVEGACIÓN PARA NUEVA PANTALLA DE HISTORIAL DE REGISTROS DIARIOS ---
+        composable(
+            route = AppRoutes.USER_DAILY_LOG_HISTORY,
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId")
+            if (userId != null) {
+                UserDailyLogHistoryScreen(navController = navController, userId = userId)
+            } else {
+                Text("Error: User ID no encontrado para historial de registros diarios.")
+            }
+        }
+        // --- FIN DE NAVEGACIÓN ---
     }
 }

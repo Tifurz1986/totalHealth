@@ -12,6 +12,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.RestaurantMenu
+import androidx.compose.material.icons.filled.HistoryEdu
+import androidx.compose.material.icons.filled.Summarize // Icono para Reportes Diarios
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,7 +31,16 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
-import com.miempresa.totalhealth.auth.UserProfile
+import com.miempresa.totalhealth.ui.common.PremiumButton
+import com.miempresa.totalhealth.ui.theme.PremiumDarkCharcoal
+import com.miempresa.totalhealth.ui.theme.PremiumGold
+import com.miempresa.totalhealth.ui.theme.PremiumIconGold
+import com.miempresa.totalhealth.ui.theme.OriginalDetailLabelColor
+import com.miempresa.totalhealth.ui.theme.OriginalDetailValueColor
+import com.miempresa.totalhealth.ui.theme.OriginalGradientTop
+import com.miempresa.totalhealth.ui.theme.OriginalGradientMid
+import com.miempresa.totalhealth.ui.theme.OriginalButtonTextColor
+import com.miempresa.totalhealth.ui.theme.OriginalCardBackground
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -50,9 +62,9 @@ fun TrainerUserDetailScreen(
 
     val blackGoldGradient = Brush.verticalGradient(
         colors = listOf(
-            Color(0xFF141414),
-            Color(0xFF23211C),
-            Color(0xFFFFD700)
+            OriginalGradientTop,
+            OriginalGradientMid,
+            PremiumGold
         )
     )
 
@@ -62,7 +74,7 @@ fun TrainerUserDetailScreen(
                 title = {
                     Text(
                         "Detalle del Usuario",
-                        color = Color.White,
+                        color = PremiumGold,
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -71,11 +83,13 @@ fun TrainerUserDetailScreen(
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
-                            tint = Color.White
+                            tint = PremiumIconGold
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF111111))
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = PremiumDarkCharcoal
+                )
             )
         }
     ) { paddingValues ->
@@ -85,23 +99,22 @@ fun TrainerUserDetailScreen(
                 .background(blackGoldGradient)
                 .padding(paddingValues)
         ) {
-            when (uiState) {
+            when (val currentState = uiState) {
                 is UserProfileDetailUiState.Success -> {
-                    val user = (uiState as UserProfileDetailUiState.Success).userProfile
+                    val user = currentState.userProfile
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .verticalScroll(rememberScrollState())
                             .fillMaxSize()
-                            .padding(top = 32.dp, bottom = 24.dp)
+                            .padding(top = 32.dp, bottom = 24.dp, start = 16.dp, end = 16.dp)
                     ) {
-                        // Avatar dorado
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
                                 .size(110.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFFFFD700))
+                                .background(PremiumGold)
                         ) {
                             if (!user.profilePictureUrl.isNullOrBlank()) {
                                 Image(
@@ -114,7 +127,7 @@ fun TrainerUserDetailScreen(
                                 Icon(
                                     imageVector = Icons.Default.AccountCircle,
                                     contentDescription = "Avatar",
-                                    tint = Color(0xFF222222),
+                                    tint = OriginalButtonTextColor,
                                     modifier = Modifier.size(88.dp)
                                 )
                             }
@@ -129,17 +142,15 @@ fun TrainerUserDetailScreen(
                         )
                         Text(
                             text = user.email ?: "",
-                            color = Color(0xFFCCC18A),
+                            color = OriginalDetailValueColor,
                             fontSize = 16.sp,
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
-                        // Card de datos principales
                         Card(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp),
+                                .fillMaxWidth(),
                             shape = RoundedCornerShape(22.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1C)),
+                            colors = CardDefaults.cardColors(containerColor = OriginalCardBackground),
                             elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
                         ) {
                             Column(
@@ -163,22 +174,68 @@ fun TrainerUserDetailScreen(
                             }
                         }
 
-                        // BOTÓN FUNCIONAL - fuera de la tarjeta
-                        Spacer(Modifier.height(36.dp))
-                        RegisterProgressButton {
-                            // NAVEGACIÓN FUNCIONAL (lógica original adaptada)
+                        Spacer(Modifier.height(24.dp))
+                        RegisterProgressButtonOriginal(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 32.dp)
+                        ) {
                             navController.navigate("record_user_progress/${user.uid}")
                         }
+
+                        Spacer(Modifier.height(16.dp))
+
+                        PremiumButton(
+                            text = "Ver Reporte de Comida",
+                            onClick = {
+                                navController.navigate("user_food_report_history/${user.uid}")
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 32.dp),
+                            icon = Icons.Filled.RestaurantMenu,
+                            contentDescription = "Reportes de comida del usuario"
+                        )
+
+                        Spacer(Modifier.height(12.dp))
+
+                        PremiumButton(
+                            text = "Ver Diario de Mejoras",
+                            onClick = {
+                                navController.navigate("user_improvement_journal_history/${user.uid}")
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 32.dp),
+                            icon = Icons.Filled.HistoryEdu,
+                            contentDescription = "Diario de mejoras del usuario"
+                        )
+
+                        // --- NUEVO BOTÓN PARA REPORTES DIARIOS ---
+                        Spacer(Modifier.height(12.dp))
+
+                        PremiumButton(
+                            text = "Ver Reportes Diarios",
+                            onClick = {
+                                navController.navigate("user_daily_log_history/${user.uid}")
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 32.dp),
+                            icon = Icons.Filled.Summarize, // O Icons.Filled.CalendarToday
+                            contentDescription = "Reportes diarios del usuario"
+                        )
+                        // --- FIN DE NUEVO BOTÓN ---
                     }
                 }
                 is UserProfileDetailUiState.Loading -> {
                     CircularProgressIndicator(
                         modifier = Modifier.align(Alignment.Center),
-                        color = Color(0xFFFFD700)
+                        color = PremiumGold
                     )
                 }
                 is UserProfileDetailUiState.Error -> {
-                    val errorMsg = (uiState as UserProfileDetailUiState.Error).message
+                    val errorMsg = currentState.message
                     Text(
                         text = "Error: $errorMsg",
                         color = Color.Red,
@@ -186,11 +243,13 @@ fun TrainerUserDetailScreen(
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
-                else -> {
+                is UserProfileDetailUiState.Idle -> {
                     Text(
-                        text = "Selecciona un usuario para ver detalles.",
-                        color = Color.DarkGray,
-                        modifier = Modifier.align(Alignment.Center)
+                        text = if (userId.isNullOrBlank()) "No se ha seleccionado un usuario." else "Cargando datos del usuario...",
+                        color = Color.LightGray,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.align(Alignment.Center).padding(16.dp),
+                        textAlign = TextAlign.Center
                     )
                 }
             }
@@ -209,43 +268,40 @@ fun DatosPersonalesRow(label: String, value: String) {
         Text(
             text = label,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFFFFD700),
+            color = OriginalDetailLabelColor,
             fontSize = 15.sp,
             modifier = Modifier.width(140.dp)
         )
         Text(
             text = value,
-            color = Color(0xFFEEE8BB),
+            color = OriginalDetailValueColor,
             fontSize = 15.sp
         )
     }
     Divider(
-        color = Color(0x33FFD700),
-        thickness = 1.dp,
-        modifier = Modifier.padding(start = 0.dp)
+        color = OriginalDetailLabelColor.copy(alpha = 0.2f),
+        thickness = 1.dp
     )
 }
 
 @Composable
-fun RegisterProgressButton(onClick: () -> Unit) {
+fun RegisterProgressButtonOriginal(modifier: Modifier = Modifier, onClick: () -> Unit) {
     Button(
         onClick = onClick,
         shape = RoundedCornerShape(32.dp),
         elevation = ButtonDefaults.buttonElevation(defaultElevation = 18.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFFFFD700),
-            contentColor = Color(0xFF23211C)
+            containerColor = PremiumGold,
+            contentColor = OriginalButtonTextColor
         ),
-        modifier = Modifier
-            .padding(horizontal = 48.dp)
+        modifier = modifier
             .height(60.dp)
-            .fillMaxWidth()
             .shadow(18.dp, RoundedCornerShape(32.dp))
     ) {
         Icon(
             imageVector = Icons.Default.Edit,
             contentDescription = "Registrar Progreso",
-            tint = Color(0xFF23211C),
+            tint = OriginalButtonTextColor,
             modifier = Modifier.size(28.dp)
         )
         Spacer(Modifier.width(12.dp))
