@@ -3,6 +3,7 @@ package com.miempresa.totalhealth.trainer
 
 import android.annotation.SuppressLint
 import android.util.Log
+import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,6 +16,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,6 +29,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -138,6 +143,85 @@ fun TrainerHomeScreen(
 }
 
 @Composable
+fun DashboardMetrics() {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+    ) {
+        MetricCardPro(
+            title = "Usuarios Activos",
+            value = 25,
+            icon = Icons.Default.People,
+            modifier = Modifier.weight(1f)
+        )
+        MetricCardPro(
+            title = "Reportes Hoy",
+            value = 14,
+            icon = Icons.Default.Assessment,
+            modifier = Modifier.weight(1f)
+        )
+        MetricCardPro(
+            title = "Citas Hoy",
+            value = 3,
+            icon = Icons.Default.Event,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+fun MetricCardPro(
+    title: String,
+    value: Int,
+    icon: ImageVector,
+    modifier: Modifier = Modifier
+) {
+    val animatedValue by animateIntAsState(targetValue = value, label = title)
+    Card(
+        modifier = modifier
+            .height(100.dp)
+            .shadow(10.dp, RoundedCornerShape(22.dp))
+            .border(2.dp, Color(0xFFFFD700), RoundedCornerShape(22.dp)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF181818)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Row(
+            Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = Color(0xFFFFD700),
+                modifier = Modifier
+                    .size(38.dp)
+                    .padding(end = 8.dp)
+            )
+            Column(
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = title,
+                    color = Color(0xFFE3C15B),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = animatedValue.toString(),
+                    color = Color.White,
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun TrainerCalendarSection() {
     val today = remember { LocalDate.now() }
     var selectedDate by remember { mutableStateOf(today) }
@@ -188,7 +272,6 @@ fun TrainerCalendarSection() {
         }
     }
 }
-
 
 @Composable
 fun HorizontalCalendar(
@@ -314,46 +397,6 @@ fun UserItemPro(user: UserProfile, navController: NavController) {
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun DashboardMetrics() {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            MetricCard("Usuarios Activos", "25")
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            MetricCard("Reportes Hoy", "14")
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            MetricCard("Citas Hoy", "3")
-        }
-    }
-}
-
-@Composable
-fun MetricCard(title: String, value: String) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(80.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1C)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(text = title, color = Color(0xFFFFD700), fontSize = 14.sp)
-            Text(text = value, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
