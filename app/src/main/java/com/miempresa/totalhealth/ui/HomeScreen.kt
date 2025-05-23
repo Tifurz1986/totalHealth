@@ -72,11 +72,12 @@ fun HomeScreen(
     val colorVerdePrincipal = Color(0xFF00897B)
     val colorVerdeOscuro = Color(0xFF004D40)
     val colorVerdeSecundario = Color(0xFF00BFA5)
-    val colorBotonGradienteEnd = Color(0xFF00A99D)
-    val colorTextoBotonProminente = Color.White
-
+    val colorVerdeTurquesa = Color(0xFF00BFA5)
+    val colorGlowBorde = Color(0xFF00BFA5).copy(alpha = 0.55f)
+    val colorGlowAmarillo = Color(0xFFFFD700).copy(alpha = 0.60f)
+    val colorAmarilloFuerte = Color(0xFFFFD700)
     val fondoDegradado = Brush.verticalGradient(
-        colors = listOf(colorNegro, colorVerdeOscuro, colorNegro)
+        colors = listOf(colorVerdeOscuro, colorNegro)
     )
 
     LaunchedEffect(key1 = currentUser?.uid) {
@@ -107,43 +108,11 @@ fun HomeScreen(
 
     Scaffold(
         bottomBar = {
-            Surface(
-                tonalElevation = 8.dp,
-                shadowElevation = 12.dp,
-                color = Color(0xEE181C1B)
-            ) {
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 18.dp, vertical = 2.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    QuickActionButton(
-                        icon = Icons.Filled.RestaurantMenu,
-                        label = "Comida",
-                        onClick = { navController.navigate("food_report") },
-                        color = colorVerdeSecundario
-                    )
-                    QuickActionButton(
-                        icon = Icons.Filled.Assessment,
-                        label = "Progreso",
-                        onClick = { navController.navigate("progress_screen") },
-                        color = colorVerdeSecundario
-                    )
-                    QuickActionButton(
-                        icon = Icons.Filled.CalendarMonth,
-                        label = "Citas",
-                        onClick = { navController.navigate("appointments_screen") },
-                        color = colorVerdeSecundario
-                    )
-                    QuickActionButton(
-                        icon = Icons.Filled.Chat,
-                        label = "Chat",
-                        onClick = { navController.navigate("chat_screen") },
-                        color = Color(0xFF43A047)
-                    )
-                }
-            }
+            BottomBarHome(
+                navController = navController,
+                activeColor = colorVerdeTurquesa,
+                fondoOscuro = colorNegro.copy(alpha = 0.90f)
+            )
         },
         topBar = {
             CenterAlignedTopAppBar(
@@ -223,8 +192,7 @@ fun HomeScreen(
                         .alpha(0.8f)
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // Saludo personalizado
                 val displayName = when (val state = userProfileState) {
@@ -235,17 +203,8 @@ fun HomeScreen(
                     text = "¡Hola, $displayName!",
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 32.sp,
-                    color = Color(0xFFFFD700),
-                    modifier = Modifier
-                        .padding(bottom = 8.dp)
-                        .shadow(8.dp, RoundedCornerShape(8.dp))
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(Color(0xFF212121), Color.Transparent, Color(0xFF212121))
-                            ),
-                            RoundedCornerShape(8.dp)
-                        )
-                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                    color = Color.White,
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
@@ -263,12 +222,7 @@ fun HomeScreen(
                         navController.navigate("daily_log_screen")
                     }
                 }
-                Text(
-                    "Haz click cada día para registrar tu bienestar",
-                    fontSize = 13.sp,
-                    color = Color.White.copy(alpha = 0.7f),
-                    modifier = Modifier.padding(bottom = 2.dp, start = 6.dp)
-                )
+
                 val interactionSource = remember { MutableInteractionSource() }
                 val pressed by interactionSource.collectIsPressedAsState()
                 val elevation by animateDpAsState(
@@ -280,45 +234,40 @@ fun HomeScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 10.dp)
-                        .height(56.dp)
+                        .height(62.dp)
                         .shadow(elevation = elevation, shape = RoundedCornerShape(30.dp)),
                     shape = RoundedCornerShape(30.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Black.copy(alpha = 0.68f)),
                     contentPadding = PaddingValues(),
                     interactionSource = interactionSource,
-                    enabled = !isLoading
+                    enabled = !isLoading,
+                    border = BorderStroke(2.dp, colorGlowAmarillo)
                 ) {
                     Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.horizontalGradient(
-                                    listOf(
-                                        Color(0xFF101010),
-                                        Color(0xFFFFD700),
-                                        colorBotonGradienteEnd
-                                    )
-                                ),
-                                RoundedCornerShape(30.dp)
-                            )
-                            .border(1.8.dp, Color(0xFFFFD700).copy(alpha = 0.5f), RoundedCornerShape(30.dp)),
+                            .fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(
-                                color = Color.White,
+                                color = colorAmarilloFuerte,
                                 strokeWidth = 3.dp,
                                 modifier = Modifier.size(30.dp)
                             )
                         } else {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Filled.PostAdd, contentDescription = "Registrar", tint = Color.White, modifier = Modifier.size(28.dp))
-                                Spacer(Modifier.width(10.dp))
+                                Icon(
+                                    Icons.Filled.PostAdd,
+                                    contentDescription = "Registrar",
+                                    tint = colorAmarilloFuerte,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Spacer(Modifier.width(14.dp))
                                 Text(
                                     "Registrar Mi Día",
-                                    fontSize = 19.sp,
+                                    fontSize = 21.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = colorTextoBotonProminente
+                                    color = colorAmarilloFuerte
                                 )
                             }
                         }
@@ -332,7 +281,7 @@ fun HomeScreen(
                     description = "Visualiza tu avance físico y mental.",
                     icon = Icons.Filled.Assessment,
                     onClick = { navController.navigate("progress_screen") },
-                    colorGlow = Color(0xFF43A047),
+                    colorGlow = colorVerdeSecundario,
                     animationDelay = 0
                 )
                 Spacer(modifier = Modifier.height(14.dp))
@@ -350,7 +299,7 @@ fun HomeScreen(
                     description = "Reflexiona sobre tus logros y metas.",
                     icon = Icons.Filled.EditNote,
                     onClick = { navController.navigate("improvement_journal_screen") },
-                    colorGlow = Color(0xFFFFD700),
+                    colorGlow = colorVerdeSecundario,
                     animationDelay = 200
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -360,26 +309,30 @@ fun HomeScreen(
                     description = if (proximaCita.value.isNotBlank()) proximaCita.value else "Sin próximas citas",
                     icon = Icons.Filled.CalendarMonth,
                     onClick = { navController.navigate("appointments_screen") },
-                    colorGlow = Color(0xFFFFD700),
+                    colorGlow = colorVerdeSecundario,
                     animationDelay = 300
                 )
                 Spacer(modifier = Modifier.height(14.dp))
+                // InfoFeatureCards destacados - Frase Semanal y Libro del Mes como mini cards
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 8.dp),
+                        .padding(bottom = 10.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     val phraseContent = weeklyPhraseState
-                    PillMiniCard(
-                        modifier = Modifier.weight(1f),
+                    FeaturedMiniCard(
                         icon = Icons.Filled.FormatQuote,
-                        label = "Frase",
-                        content = when (phraseContent) {
-                            is WeeklyPhraseUiState.Success -> "\"${phraseContent.phrase.phrase.take(28)}${if (phraseContent.phrase.phrase.length > 28) "..." else ""}\""
+                        title = "Frase Semanal",
+                        mainText = when (phraseContent) {
+                            is WeeklyPhraseUiState.Success -> phraseContent.phrase.phrase
                             is WeeklyPhraseUiState.Loading -> "Cargando..."
                             is WeeklyPhraseUiState.Error -> "Error"
                             is WeeklyPhraseUiState.Empty -> "Sin frase"
+                        },
+                        secondaryText = when (phraseContent) {
+                            is WeeklyPhraseUiState.Success -> phraseContent.phrase.author
+                            else -> null
                         },
                         onClick = {
                             if (phraseContent is WeeklyPhraseUiState.Success) {
@@ -389,18 +342,22 @@ fun HomeScreen(
                                 weeklyPhraseViewModel.loadWeeklyPhrase()
                             }
                         },
-                        color = Color(0xFFFFD700)
+                        borderColor = colorVerdeSecundario,
+                        modifier = Modifier.weight(1f)
                     )
                     val bookContent = dailyBookState
-                    PillMiniCard(
-                        modifier = Modifier.weight(1f),
+                    FeaturedMiniCard(
                         icon = Icons.Filled.Book,
-                        label = "Libro",
-                        content = when (bookContent) {
-                            is DailyBookUiState.Success -> bookContent.book.title.take(22) + if (bookContent.book.title.length > 22) "..." else ""
+                        title = "Libro del Mes",
+                        mainText = when (bookContent) {
+                            is DailyBookUiState.Success -> bookContent.book.title
                             is DailyBookUiState.Loading -> "Cargando..."
                             is DailyBookUiState.Error -> "Error"
                             is DailyBookUiState.Empty -> "Sin libro"
+                        },
+                        secondaryText = when (bookContent) {
+                            is DailyBookUiState.Success -> bookContent.book.author
+                            else -> null
                         },
                         onClick = {
                             if (bookContent is DailyBookUiState.Success) {
@@ -410,16 +367,16 @@ fun HomeScreen(
                                 dailyBookViewModel.loadBookOfTheMonth()
                             }
                         },
-                        color = Color(0xFF43A047)
+                        borderColor = colorVerdeSecundario,
+                        modifier = Modifier.weight(1f)
                     )
                 }
-                Spacer(modifier = Modifier.height(16.dp))
                 AnimatedFeatureCard(
                     title = "Reportar lesión o molestia",
                     description = "Informa cualquier lesión o molestia física.",
                     icon = Icons.Filled.HealthAndSafety,
                     onClick = { showInjuryReportDialog = true },
-                    colorGlow = Color(0xFFD32F2F),
+                    colorGlow = Color(0xFFD32F2F), // Rojo para borde
                     animationDelay = 500
                 )
                 Spacer(modifier = Modifier.height(14.dp))
@@ -428,7 +385,7 @@ fun HomeScreen(
                     description = "Configura tu perfil y preferencias.",
                     icon = Icons.Filled.Settings,
                     onClick = { navController.navigate("settings_screen") },
-                    colorGlow = Color(0xFF00897B),
+                    colorGlow = colorVerdeSecundario,
                     animationDelay = 600
                 )
                 Spacer(modifier = Modifier.height(28.dp))
@@ -616,20 +573,10 @@ fun AnimatedFeatureCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onClick() }
-                .shadow(18.dp, RoundedCornerShape(18.dp))
-                .border(
-                    2.dp,
-                    Brush.horizontalGradient(
-                        listOf(
-                            colorGlow.copy(alpha = 0.7f),
-                            Color.White.copy(alpha = 0.08f),
-                            colorGlow.copy(alpha = 0.7f)
-                        )
-                    ),
-                    RoundedCornerShape(18.dp)
-                ),
+                .shadow(10.dp, RoundedCornerShape(18.dp)),
             shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.10f))
+            colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.68f)),
+            border = BorderStroke(2.dp, Color(0xFF00BFA5).copy(alpha = 0.55f))
         ) {
             Row(
                 modifier = Modifier
@@ -642,7 +589,7 @@ fun AnimatedFeatureCard(
                         .size(48.dp)
                         .background(
                             Brush.radialGradient(
-                                colors = listOf(colorGlow.copy(alpha = 0.25f), Color.Transparent),
+                                colors = listOf(colorGlow.copy(alpha = 0.20f), Color.Transparent),
                                 center = androidx.compose.ui.geometry.Offset(24f, 24f),
                                 radius = 36f
                             ),
@@ -658,11 +605,11 @@ fun AnimatedFeatureCard(
                         text = title,
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp,
-                        color = colorGlow
+                        color = Color.White
                     )
                     Text(
                         text = description,
-                        color = Color.White.copy(alpha = 0.68f),
+                        color = Color(0xFFB2FFF2).copy(alpha = 0.88f),
                         fontSize = 15.sp
                     )
                 }
@@ -671,48 +618,67 @@ fun AnimatedFeatureCard(
     }
 }
 
+
 @Composable
-fun PillMiniCard(
-    modifier: Modifier = Modifier,
+fun InfoFeatureCard(
     icon: ImageVector,
-    label: String,
-    content: String,
+    title: String,
+    mainText: String,
+    secondaryText: String?,
     onClick: () -> Unit,
-    color: Color
+    borderColor: Color = Color(0xFF00BFA5)
 ) {
-    Surface(
-        modifier = modifier
-            .height(48.dp)
-            .clip(RoundedCornerShape(30.dp))
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
             .clickable { onClick() }
-            .shadow(3.dp, RoundedCornerShape(30.dp)),
-        color = Color.White.copy(alpha = 0.13f),
-        border = BorderStroke(1.2.dp, color.copy(alpha = 0.38f))
+            .shadow(10.dp, RoundedCornerShape(18.dp)),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.68f)),
+        border = BorderStroke(2.dp, borderColor.copy(alpha = 0.55f))
     ) {
         Row(
-            Modifier
-                .fillMaxSize()
-                .padding(horizontal = 12.dp),
+            modifier = Modifier
+                .padding(18.dp)
+                .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Surface(
-                modifier = Modifier.size(28.dp),
-                shape = CircleShape,
-                color = color.copy(alpha = 0.18f)
+            Icon(
+                icon,
+                contentDescription = title,
+                tint = borderColor,
+                modifier = Modifier
+                    .size(40.dp)
+                    .padding(end = 18.dp)
+            )
+            Column(
+                modifier = Modifier.weight(1f)
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(icon, contentDescription = label, tint = color, modifier = Modifier.size(18.dp))
+                Text(
+                    text = title,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = Color.White,
+                    modifier = Modifier.padding(bottom = 2.dp)
+                )
+                Text(
+                    text = mainText,
+                    color = Color(0xFFB2FFF2).copy(alpha = 0.88f),
+                    fontSize = 15.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                secondaryText?.let {
+                    Text(
+                        text = it,
+                        color = Color.White.copy(alpha = 0.65f),
+                        fontSize = 13.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
-            Spacer(Modifier.width(8.dp))
-            Text(
-                content,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.White,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
         }
     }
 }
@@ -722,27 +688,47 @@ fun QuickActionButton(
     icon: ImageVector,
     label: String,
     onClick: () -> Unit,
-    color: Color
+    color: Color,
+    active: Boolean = false,
+    modifier: Modifier = Modifier
 ) {
+    // Todos los botones de la barra inferior tienen el mismo tamaño, alineación y diseño.
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .padding(horizontal = 4.dp)
+        modifier = modifier
+            .padding(horizontal = 4.dp, vertical = 2.dp)
             .clickable { onClick() }
     ) {
-        Surface(
-            modifier = Modifier.size(44.dp),
-            shape = CircleShape,
-            color = color.copy(alpha = 0.13f),
-            shadowElevation = 6.dp
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(56.dp)
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    icon,
-                    contentDescription = label,
-                    tint = color,
-                    modifier = Modifier.size(28.dp)
-                )
+            Surface(
+                modifier = Modifier
+                    .size(44.dp),
+                shape = CircleShape,
+                color = Color.Black.copy(alpha = 0.68f),
+                border = if (active) BorderStroke(2.dp, color) else BorderStroke(2.dp, Color.Transparent),
+                shadowElevation = if (active) 10.dp else 6.dp
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .then(
+                            if (active)
+                                Modifier
+                                    .background(color.copy(alpha = 0.14f), shape = CircleShape)
+                            else Modifier
+                        )
+                ) {
+                    Icon(
+                        icon,
+                        contentDescription = label,
+                        tint = color,
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
             }
         }
         Text(
@@ -752,6 +738,47 @@ fun QuickActionButton(
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(top = 2.dp)
         )
+    }
+}
+
+@Composable
+fun BottomBarHome(
+    navController: NavController,
+    activeColor: Color,
+    fondoOscuro: Color
+) {
+    // Lista de botones en orden: Home, Progreso, Citas, Chat
+    val items = listOf(
+        Triple(Icons.Filled.Home, "Home", "home_user"),
+        Triple(Icons.Filled.Assessment, "Progreso", "progress_screen"),
+        Triple(Icons.Filled.CalendarMonth, "Citas", "appointments_screen"),
+        Triple(Icons.Filled.Chat, "Chat", "chat_screen")
+    )
+    // Puedes usar navController.currentDestination?.route para la ruta activa
+    val currentRoute = navController.currentDestination?.route
+    Surface(
+        tonalElevation = 8.dp,
+        shadowElevation = 12.dp,
+        color = fondoOscuro
+    ) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 2.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            items.forEach { (icon, label, route) ->
+                QuickActionButton(
+                    icon = icon,
+                    label = label,
+                    onClick = { navController.navigate(route) },
+                    color = activeColor,
+                    active = currentRoute == route,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
     }
 }
 
@@ -825,6 +852,67 @@ fun DropdownMenuBox(
                         onValueChange(opcion)
                         expanded = false
                     }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun FeaturedMiniCard(
+    icon: ImageVector,
+    title: String,
+    mainText: String,
+    secondaryText: String?,
+    onClick: () -> Unit,
+    borderColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .height(134.dp)
+            .clickable { onClick() }
+            .shadow(8.dp, RoundedCornerShape(20.dp)),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.68f)),
+        border = BorderStroke(2.dp, borderColor.copy(alpha = 0.55f))
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 8.dp, vertical = 12.dp)
+                .fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Icon(
+                icon,
+                contentDescription = title,
+                tint = borderColor,
+                modifier = Modifier.size(32.dp)
+            )
+            Text(
+                text = title,
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+                color = Color.White
+            )
+            Text(
+                text = mainText,
+                color = Color(0xFFB2FFF2).copy(alpha = 0.88f),
+                fontSize = 13.sp,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 2.dp)
+            )
+            if (!secondaryText.isNullOrBlank()) {
+                Text(
+                    text = secondaryText,
+                    color = Color.White.copy(alpha = 0.60f),
+                    fontSize = 12.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
                 )
             }
         }

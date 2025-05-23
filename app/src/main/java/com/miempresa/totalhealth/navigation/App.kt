@@ -13,7 +13,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.background
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.shadow
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.miempresa.totalhealth.chat.ChatScreen
+import com.miempresa.totalhealth.chat.ChatViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -136,6 +141,21 @@ fun AppNavigation() {
         composable(AppRoutes.REGISTER) { RegisterScreen(navController, authViewModel) }
 
         composable(AppRoutes.HOME_USER) { HomeScreen(navController, authViewModel) }
+        // --- Pantalla de chat real ---
+        composable("chat_screen") {
+            val chatViewModel: ChatViewModel = viewModel()
+            val role = when (val state = authUiState) {
+                is AuthAndRoleUiState.Authenticated -> state.role
+                else -> UserRole.USER
+            }
+            ChatScreen(
+                navController = navController,
+                chatViewModel = chatViewModel,
+                userId = authViewModel.getCurrentUser()?.uid ?: "",
+                trainerId = "",
+                userRole = role
+            )
+        }
         composable(AppRoutes.HOME_ADMIN) {
             Log.d("NavHost", "Navigated to home_admin (placeholder).")
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
