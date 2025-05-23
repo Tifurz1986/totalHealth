@@ -4,6 +4,8 @@
 
 package com.miempresa.totalhealth.ui
 
+import com.miempresa.totalhealth.injuryreport.InjuryReportScreen
+
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -541,12 +543,9 @@ fun HomeScreen(
     }
 
     if (showInjuryReportDialog) {
-        InjuryReportDialog(
-            onDismiss = { showInjuryReportDialog = false },
-            onReport = { zona, gravedad, descripcion ->
-                showInjuryReportDialog = false
-                // Aquí puedes guardar el reporte en Firestore o mostrar un toast
-            }
+        InjuryReportScreen(
+            userId = currentUser.uid,
+            onClose = { showInjuryReportDialog = false }
         )
     }
 }
@@ -782,49 +781,6 @@ fun BottomBarHome(
     }
 }
 
-@Composable
-fun InjuryReportDialog(
-    onDismiss: () -> Unit,
-    onReport: (String, String, String) -> Unit
-) {
-    var zona by remember { mutableStateOf("") }
-    var gravedad by remember { mutableStateOf("Leve") }
-    var descripcion by remember { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Reportar lesión o molestia") },
-        text = {
-            Column {
-                OutlinedTextField(
-                    value = zona,
-                    onValueChange = { zona = it },
-                    label = { Text("Zona afectada (ej: rodilla)") }
-                )
-                Spacer(Modifier.height(8.dp))
-                DropdownMenuBox(
-                    value = gravedad,
-                    onValueChange = { gravedad = it }
-                )
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = descripcion,
-                    onValueChange = { descripcion = it },
-                    label = { Text("Descripción") }
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onReport(zona, gravedad, descripcion) },
-                enabled = zona.isNotBlank() && descripcion.isNotBlank()
-            ) { Text("Reportar") }
-        },
-        dismissButton = {
-            OutlinedButton(onClick = onDismiss) { Text("Cancelar") }
-        }
-    )
-}
 
 @Composable
 fun DropdownMenuBox(
