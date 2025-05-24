@@ -85,6 +85,45 @@ fun TrainerHomeScreen(
         ) {
             Column(modifier = Modifier.padding(14.dp).fillMaxSize()) { // Asegurar que la columna pueda hacer scroll si el contenido excede
 
+                // Acceso premium al calendario
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(70.dp)
+                        .padding(bottom = 20.dp)
+                        .shadow(12.dp, RoundedCornerShape(18.dp))
+                        .border(2.dp, Color(0xFFFFD700), RoundedCornerShape(18.dp))
+                        .clickable { navController.navigate("trainer_calendar") },
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF181818)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(Color(0xFFFFD700), Color(0xFF23211C), Color(0xFF181818))
+                                )
+                            )
+                            .padding(horizontal = 18.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Event,
+                            contentDescription = "Calendario de citas",
+                            tint = Color.Black,
+                            modifier = Modifier.size(38.dp)
+                        )
+                        Spacer(modifier = Modifier.width(18.dp))
+                        Text(
+                            text = "Ver Calendario de Citas",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp
+                        )
+                    }
+                }
+
                 Text(
                     text = "Panel del Entrenador",
                     fontSize = 24.sp,

@@ -17,6 +17,9 @@ import androidx.compose.foundation.background
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draw.shadow
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.graphics.Brush
+import com.miempresa.totalhealth.trainer.calendar.CreateAppointmentScreen
+import com.miempresa.totalhealth.trainer.calendar.AppointmentsViewModel
 import com.miempresa.totalhealth.chat.ChatScreen
 import com.miempresa.totalhealth.chat.ChatViewModel
 import androidx.navigation.NavHostController
@@ -137,7 +140,16 @@ fun AppNavigation() {
         }
     }
 
-    NavHost(navController = navController, startDestination = AppRoutes.LOGIN) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color(0xFF181818), Color(0xFF23211C), Color(0xFFFFD700))
+                )
+            )
+    ) {
+        NavHost(navController = navController, startDestination = AppRoutes.LOGIN) {
         composable(AppRoutes.LOGIN) { LoginScreen(navController, authViewModel) }
         composable(AppRoutes.REGISTER) { RegisterScreen(navController, authViewModel) }
 
@@ -170,6 +182,15 @@ fun AppNavigation() {
         }
         composable(AppRoutes.HOME_TRAINER) {
             TrainerHomeScreen(navController = navController, authViewModel = authViewModel)
+        }
+
+        // Calendario premium del entrenador
+        composable("trainer_calendar") {
+            val appointmentsViewModel: AppointmentsViewModel = viewModel()
+            com.miempresa.totalhealth.trainer.calendar.TrainerCalendarSection(
+                appointmentsViewModel = appointmentsViewModel,
+                navController = navController
+            )
         }
 
         composable(
@@ -254,6 +275,22 @@ fun AppNavigation() {
         }
         // --- FIN DE NAVEGACIÓN ---
 
+        // Ruta para crear cita (trainer)
+        composable(
+            route = "create_appointment/{userId}",
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            val trainerId = authViewModel.getCurrentUser()?.uid ?: ""
+            val appointmentsViewModel: AppointmentsViewModel = viewModel()
+            CreateAppointmentScreen(
+                userId = userId,
+                trainerId = trainerId,
+                appointmentsViewModel = appointmentsViewModel,
+                navController = navController
+            )
+        }
+
         // Ruta para pantalla de subemociones
         composable(
             route = "subemotion/{emotionName}/{userId}",
@@ -267,4 +304,5 @@ fun AppNavigation() {
             com.miempresa.totalhealth.ui.SubEmotionScreen(navController, emotionName, userId)
         }
     }
+}
 }
