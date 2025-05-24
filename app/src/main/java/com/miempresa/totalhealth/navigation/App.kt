@@ -46,6 +46,7 @@ import com.miempresa.totalhealth.trainer.history.food.UserFoodReportHistoryScree
 import com.miempresa.totalhealth.trainer.history.journal.UserImprovementJournalHistoryScreen
 // --- IMPORTACIÓN PARA NUEVA PANTALLA DE HISTORIAL DE REGISTROS DIARIOS ---
 import com.miempresa.totalhealth.trainer.history.dailylog.UserDailyLogHistoryScreen
+import com.miempresa.totalhealth.ui.SubEmotionScreen
 // --- FIN DE IMPORTACIÓN ---
 
 object AppRoutes {
@@ -252,5 +253,18 @@ fun AppNavigation() {
             }
         }
         // --- FIN DE NAVEGACIÓN ---
+
+        // Ruta para pantalla de subemociones
+        composable(
+            route = "subemotion/{emotionName}/{userId}",
+            arguments = listOf(
+                navArgument("emotionName") { type = NavType.StringType },
+                navArgument("userId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val emotionName = backStackEntry.arguments?.getString("emotionName") ?: ""
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            com.miempresa.totalhealth.ui.SubEmotionScreen(navController, emotionName, userId)
+        }
     }
 }

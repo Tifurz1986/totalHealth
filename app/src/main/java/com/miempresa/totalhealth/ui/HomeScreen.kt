@@ -4,8 +4,12 @@
 
 package com.miempresa.totalhealth.ui
 
-import com.miempresa.totalhealth.injuryreport.InjuryReportScreen
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 
+import com.miempresa.totalhealth.ui.EmotionGridSelector
+
+
+import com.miempresa.totalhealth.injuryreport.InjuryReportScreen
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -20,6 +24,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -51,12 +56,14 @@ import coil.compose.rememberAsyncImagePainter
 import com.miempresa.totalhealth.content.DailyBook
 import com.miempresa.totalhealth.content.DailyBookUiState
 import com.miempresa.totalhealth.content.DailyBookViewModel
+
 import com.miempresa.totalhealth.content.WeeklyPhrase
 import com.miempresa.totalhealth.content.WeeklyPhraseUiState
 import com.miempresa.totalhealth.content.WeeklyPhraseViewModel
 import com.miempresa.totalhealth.auth.AuthViewModel
 import com.miempresa.totalhealth.auth.UserProfileUiState
 import kotlinx.coroutines.delay
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -277,6 +284,7 @@ fun HomeScreen(
                 }
                 Spacer(modifier = Modifier.height(18.dp))
 
+
                 // AnimatedFeatureCard y espacio para pill cards
                 AnimatedFeatureCard(
                     title = "Mi Progreso",
@@ -373,6 +381,17 @@ fun HomeScreen(
                         modifier = Modifier.weight(1f)
                     )
                 }
+
+                // --- Selector de emociones modularizado ---
+                EmotionGridSelector(
+                    userId = currentUser.uid,
+                    modifier = Modifier.padding(top = 24.dp, bottom = 10.dp),
+                    onEmotionSelected = { emotion ->
+                        navController.navigate("subemotion/${emotion.name}/${currentUser.uid}")
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
                 AnimatedFeatureCard(
                     title = "Reportar lesión o molestia",
                     description = "Informa cualquier lesión o molestia física.",

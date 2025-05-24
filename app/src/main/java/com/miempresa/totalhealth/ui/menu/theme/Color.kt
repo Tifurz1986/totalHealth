@@ -35,3 +35,10 @@ val OriginalButtonTextColor = Color(0xFF23211C)   // Texto oscuro para botones d
 val OriginalGradientTop = Color(0xFF141414)
 val OriginalGradientMid = Color(0xFF23211C)
 val OriginalGradientBottom = Color(0xFFFFD700) // Es el mismo que PremiumGold
+
+object AppColors {
+    val Burdeos = Color(0xFF7C2338)
+    val Dorado = Color(0xFFB78628)    // Dorado oscuro y premium
+    val AzulSereno = Color(0xFF3B4B66)
+    val VerdeOliva = Color(0xFF35523A)
+}

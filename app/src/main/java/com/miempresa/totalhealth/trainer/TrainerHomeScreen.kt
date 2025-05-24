@@ -1,4 +1,3 @@
-// 🗂 Paquete y imports
 package com.miempresa.totalhealth.trainer
 
 import android.annotation.SuppressLint
@@ -26,7 +25,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -50,12 +48,13 @@ fun TrainerHomeScreen(
     trainerViewModel: TrainerViewModel = viewModel()
 ) {
     val userListUiState by trainerViewModel.userListUiState.collectAsState()
+    val dashboardMetricsState by trainerViewModel.dashboardMetricsUiState.collectAsState() // Observar el nuevo estado
 
     val blackToGoldGradientBrush = Brush.verticalGradient(
         colors = listOf(
-            Color(0xFF141414),
-            Color(0xFF23211C),
-            Color(0xFFFFD700)
+            Color(0xFF141414), // Un negro más profundo
+            Color(0xFF23211C), // Un carbón oscuro
+            Color(0xFFFFD700)  // Oro
         )
     )
 
@@ -63,9 +62,12 @@ fun TrainerHomeScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Panel de Entrenador", color = Color.White, fontWeight = FontWeight.Bold) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF181818)),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF181818)), // Un gris muy oscuro para la barra
                 actions = {
-                    IconButton(onClick = { trainerViewModel.fetchAllUsers() }) {
+                    IconButton(onClick = {
+                        trainerViewModel.fetchAllUsers()
+                        trainerViewModel.fetchDashboardMetrics() // Refrescar también las métricas
+                    }) {
                         Icon(Icons.Filled.Refresh, contentDescription = "Refrescar", tint = Color(0xFFFFD700))
                     }
                     IconButton(onClick = { authViewModel.logoutUser() }) {
@@ -81,7 +83,7 @@ fun TrainerHomeScreen(
                 .background(brush = blackToGoldGradientBrush)
                 .padding(paddingValues)
         ) {
-            Column(modifier = Modifier.padding(14.dp)) {
+            Column(modifier = Modifier.padding(14.dp).fillMaxSize()) { // Asegurar que la columna pueda hacer scroll si el contenido excede
 
                 Text(
                     text = "Panel del Entrenador",
@@ -91,31 +93,72 @@ fun TrainerHomeScreen(
                     modifier = Modifier.padding(bottom = 20.dp)
                 )
 
-                DashboardMetrics()
+                // Mostrar las métricas del dashboard basadas en el estado
+                when (val metricsState = dashboardMetricsState) {
+                    is DashboardMetricsUiState.Loading -> {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            MetricCardPro(title = "Usuarios", valueString = "...", icon = Icons.Default.People, modifier = Modifier.weight(1f))
+                            MetricCardPro(title = "Reportes Hoy", valueString = "...", icon = Icons.Default.Assessment, modifier = Modifier.weight(1f))
+                            MetricCardPro(title = "Citas Hoy", valueString = "...", icon = Icons.Default.Event, modifier = Modifier.weight(1f))
+                        }
+                    }
+                    is DashboardMetricsUiState.Success -> {
+                        DashboardMetricsContent( // Cambiado el nombre para evitar conflicto con el composable anterior
+                            totalUsers = metricsState.totalUsers,
+                            reportsToday = metricsState.reportsToday,
+                            appointmentsToday = metricsState.appointmentsToday
+                        )
+                    }
+                    is DashboardMetricsUiState.Error -> {
+                        Text(
+                            text = "Error al cargar métricas: ${metricsState.message}",
+                            color = Color.Red,
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp, horizontal = 16.dp)
+                                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                .padding(8.dp)
+                        )
+                        // Opcionalmente, mostrar las cards con valores de error o guiones
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            MetricCardPro(title = "Usuarios", valueString = "-", icon = Icons.Default.People, modifier = Modifier.weight(1f))
+                            MetricCardPro(title = "Reportes Hoy", valueString = "-", icon = Icons.Default.Assessment, modifier = Modifier.weight(1f))
+                            MetricCardPro(title = "Citas Hoy", valueString = "-", icon = Icons.Default.Event, modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                TrainerCalendarSection()
+                TrainerCalendarSection() // Esto sigue con datos de ejemplo por ahora
 
                 Text(
                     text = "Usuarios Registrados",
                     fontSize = 26.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFFFFD700),
+                    color = Color(0xFFFFD700), // Dorado para el título
                     modifier = Modifier.padding(bottom = 20.dp, top = 24.dp)
                 )
 
                 when (val state = userListUiState) {
                     is UserListUiState.Loading -> CircularProgressIndicator(
                         modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 30.dp),
-                        color = Color(0xFFFFD700)
+                        color = Color(0xFFFFD700) // Dorado para el indicador
                     )
                     is UserListUiState.Success -> {
                         if (state.users.isEmpty()) {
                             Text(
                                 text = "No hay usuarios registrados.",
                                 modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 30.dp),
-                                color = Color(0xFFE3C15B),
+                                color = Color(0xFFE3C15B), // Un dorado más suave
                                 fontSize = 18.sp,
                                 textAlign = TextAlign.Center
                             )
@@ -131,7 +174,7 @@ fun TrainerHomeScreen(
                                 .padding(top = 30.dp, start = 16.dp, end = 16.dp)
                                 .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
                                 .padding(16.dp),
-                            color = Color(0xFFFFA500),
+                            color = Color(0xFFFFA500), // Naranja/ámbar para errores
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center
                         )
@@ -143,27 +186,30 @@ fun TrainerHomeScreen(
 }
 
 @Composable
-fun DashboardMetrics() {
+fun DashboardMetricsContent( // Nuevo nombre para el Composable de contenido de métricas
+    totalUsers: Int,
+    reportsToday: Int,
+    appointmentsToday: Int
+) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(14.dp),
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = Modifier.fillMaxWidth()
     ) {
         MetricCardPro(
-            title = "Usuarios Activos",
-            value = 25,
+            title = "Usuarios Totales",
+            value = totalUsers,
             icon = Icons.Default.People,
             modifier = Modifier.weight(1f)
         )
         MetricCardPro(
             title = "Reportes Hoy",
-            value = 14,
+            value = reportsToday,
             icon = Icons.Default.Assessment,
             modifier = Modifier.weight(1f)
         )
         MetricCardPro(
             title = "Citas Hoy",
-            value = 3,
+            value = appointmentsToday,
             icon = Icons.Default.Event,
             modifier = Modifier.weight(1f)
         )
@@ -177,7 +223,58 @@ fun MetricCardPro(
     icon: ImageVector,
     modifier: Modifier = Modifier
 ) {
-    val animatedValue by animateIntAsState(targetValue = value, label = title)
+    val animatedValue by animateIntAsState(targetValue = value, label = title + "_int_val") // Etiqueta única para la animación
+    Card(
+        modifier = modifier
+            .height(100.dp)
+            .shadow(10.dp, RoundedCornerShape(22.dp))
+            .border(2.dp, Color(0xFFFFD700), RoundedCornerShape(22.dp)), // Borde dorado
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF181818)), // Fondo oscuro para la tarjeta
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Row(
+            Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = Color(0xFFFFD700), // Icono dorado
+                modifier = Modifier
+                    .size(38.dp)
+                    .padding(end = 8.dp)
+            )
+            Column(
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = title,
+                    color = Color(0xFFE3C15B), // Dorado suave para el título
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = animatedValue.toString(),
+                    color = Color.White,
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+            }
+        }
+    }
+}
+
+// Sobrecarga de MetricCardPro para el estado de carga o error, mostrando un String
+@Composable
+fun MetricCardPro(
+    title: String,
+    valueString: String, // Para mostrar "..." o "-"
+    icon: ImageVector,
+    modifier: Modifier = Modifier
+) {
     Card(
         modifier = modifier
             .height(100.dp)
@@ -211,7 +308,7 @@ fun MetricCardPro(
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = animatedValue.toString(),
+                    text = valueString, // Mostrar el string directamente
                     color = Color.White,
                     fontSize = 30.sp,
                     fontWeight = FontWeight.ExtraBold
@@ -220,6 +317,7 @@ fun MetricCardPro(
         }
     }
 }
+
 
 @Composable
 fun TrainerCalendarSection() {
@@ -235,7 +333,7 @@ fun TrainerCalendarSection() {
             text = "Calendario de Citas",
             fontWeight = FontWeight.Bold,
             fontSize = 20.sp,
-            color = Color(0xFFFFD700),
+            color = Color(0xFFFFD700), // Dorado
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
@@ -243,7 +341,7 @@ fun TrainerCalendarSection() {
             modifier = Modifier
                 .fillMaxWidth()
                 .shadow(10.dp, RoundedCornerShape(18.dp)),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF23211C))
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF23211C)) // Carbón oscuro
         ) {
             Column(
                 modifier = Modifier.padding(16.dp)
@@ -256,17 +354,19 @@ fun TrainerCalendarSection() {
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
-                    text = "Citas para ${selectedDate.format(DateTimeFormatter.ofPattern("dd MMM yyyy"))}",
+                    text = "Citas para ${selectedDate.format(DateTimeFormatter.ofPattern("dd MMM uuuu"))}", // 'uuuu' para año
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     color = Color.White
                 )
                 Spacer(modifier = Modifier.height(6.dp))
+                // DATOS DE EJEMPLO - REEMPLAZAR CON DATOS REALES DEL VIEWMODEL
                 Text(
-                    text = "• Sesión con María\n• Evaluación con Jorge",
+                    text = "• Sesión con María (10:00 AM)\n• Evaluación con Jorge (2:00 PM)",
                     fontSize = 14.sp,
-                    color = Color(0xFFE7DFA1),
-                    modifier = Modifier.padding(top = 2.dp)
+                    color = Color(0xFFE7DFA1), // Un blanco hueso/dorado pálido
+                    modifier = Modifier.padding(top = 2.dp),
+                    lineHeight = 20.sp
                 )
             }
         }
@@ -288,30 +388,35 @@ fun HorizontalCalendar(
 
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(horizontal = 4.dp) // Añadir un poco de padding
     ) {
         items(dates) { date ->
             val isSelected = date == selectedDate
-            val backgroundColor = if (isSelected) Color(0xFFFFD700) else Color.DarkGray
+            val backgroundColor = if (isSelected) Color(0xFFFFD700) else Color.DarkGray.copy(alpha = 0.5f) // Más sutil si no está seleccionada
             val textColor = if (isSelected) Color.Black else Color.White
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(12.dp)) // Bordes más redondeados
                     .background(backgroundColor)
                     .clickable { onDateSelected(date) }
-                    .padding(12.dp)
+                    .padding(horizontal = 12.dp, vertical = 10.dp) // Ajustar padding
+                    .width(60.dp) // Ancho fijo para consistencia
             ) {
                 Text(
-                    text = date.dayOfWeek.name.take(3),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = textColor
+                    text = date.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault()).uppercase(), // Mejor formato para día
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = textColor,
+                    fontSize = 10.sp // Ligeramente más pequeño
                 )
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = date.dayOfMonth.toString(),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = textColor
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), // Más grande y negrita
+                    color = textColor,
+                    fontSize = 18.sp
                 )
             }
         }
@@ -324,7 +429,7 @@ fun UserListPro(users: List<UserProfile>, navController: NavController) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
-        items(users) { user ->
+        items(users, key = { user -> user.uid }) { user -> // Asegúrate de tener una key estable
             UserItemPro(user = user, navController = navController)
         }
     }
@@ -338,7 +443,7 @@ fun UserItemPro(user: UserProfile, navController: NavController) {
         modifier = Modifier
             .fillMaxWidth()
             .shadow(12.dp, RoundedCornerShape(28.dp))
-            .border(2.dp, Color(0xFFFFD700), RoundedCornerShape(28.dp))
+            .border(1.dp, Color(0xFFFFD700).copy(alpha = 0.8f), RoundedCornerShape(28.dp)) // Borde más sutil
             .clickable {
                 Log.d(TAG, "UserItem clicked. User Name: ${user.fullName}, User Email: ${user.email}, User UID: '${user.uid}'")
                 if (user.uid.isNotBlank()) {
@@ -348,7 +453,7 @@ fun UserItemPro(user: UserProfile, navController: NavController) {
                 }
             },
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1C).copy(alpha = 0.98f))
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1C).copy(alpha = 0.9f)) // Ligeramente más transparente
     ) {
         Row(
             modifier = Modifier.padding(20.dp).fillMaxWidth(),
@@ -357,14 +462,15 @@ fun UserItemPro(user: UserProfile, navController: NavController) {
             Box(
                 modifier = Modifier
                     .size(58.dp)
-                    .background(Color(0xFFFFD700), CircleShape),
+                    .background(Color(0xFFFFD700), CircleShape)
+                    .border(2.dp, Color.White.copy(alpha = 0.3f), CircleShape), // Borde sutil al círculo
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.AccountCircle,
                     contentDescription = "Icono de Usuario",
                     modifier = Modifier.size(46.dp),
-                    tint = Color(0xFF23211C)
+                    tint = Color(0xFF23211C) // Icono oscuro sobre fondo dorado
                 )
             }
             Spacer(modifier = Modifier.width(20.dp))
@@ -379,20 +485,20 @@ fun UserItemPro(user: UserProfile, navController: NavController) {
                 Text(
                     text = user.email.ifEmpty { "Email no disponible" },
                     fontSize = 15.sp,
-                    color = Color(0xFFEEE8BB)
+                    color = Color(0xFFEEE8BB) // Dorado pálido para el email
                 )
                 if (user.role.isNotBlank()) {
                     Spacer(modifier = Modifier.height(7.dp))
                     Box(
                         modifier = Modifier
-                            .background(Color(0xFFFFD700), RoundedCornerShape(8.dp))
-                            .padding(horizontal = 10.dp, vertical = 2.dp)
+                            .background(Color(0xFFFFD700).copy(alpha = 0.8f), RoundedCornerShape(8.dp)) // Fondo más sutil para el rol
+                            .padding(horizontal = 10.dp, vertical = 3.dp) // Ajustar padding vertical
                     ) {
                         Text(
                             text = user.role.uppercase(),
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF23211C),
-                            fontSize = 13.sp
+                            color = Color(0xFF23211C), // Texto oscuro
+                            fontSize = 12.sp // Ligeramente más pequeño
                         )
                     }
                 }
