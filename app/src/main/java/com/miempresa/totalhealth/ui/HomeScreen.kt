@@ -391,7 +391,7 @@ fun HomeScreen(
                     }
                 )
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(20.dp))
                 AnimatedFeatureCard(
                     title = "Reportar lesión o molestia",
                     description = "Informa cualquier lesión o molestia física.",

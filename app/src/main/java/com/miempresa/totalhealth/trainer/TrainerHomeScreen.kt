@@ -425,11 +425,16 @@ fun HorizontalCalendar(
 
 @Composable
 fun UserListPro(users: List<UserProfile>, navController: NavController) {
+    // Filtrar usuarios con uid vacío y duplicados
+    val uniqueUsers = users
+        .filter { it.uid.isNotBlank() }
+        .distinctBy { it.uid }
+
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
-        items(users, key = { user -> user.uid }) { user -> // Asegúrate de tener una key estable
+        items(uniqueUsers, key = { user -> user.uid }) { user ->
             UserItemPro(user = user, navController = navController)
         }
     }
@@ -502,6 +507,22 @@ fun UserItemPro(user: UserProfile, navController: NavController) {
                         )
                     }
                 }
+            }
+            // Botón para agendar cita
+            IconButton(
+                onClick = {
+                    // Aquí deberías lanzar una pantalla o diálogo para crear la cita
+                    navController.navigate("create_appointment/${user.uid}")
+                },
+                modifier = Modifier
+                    .size(32.dp)
+                    .padding(start = 8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Event,
+                    contentDescription = "Crear Cita",
+                    tint = Color(0xFFFFD700)
+                )
             }
         }
     }
