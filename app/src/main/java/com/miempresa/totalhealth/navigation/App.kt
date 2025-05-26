@@ -39,6 +39,7 @@ import com.miempresa.totalhealth.auth.LoginScreen
 import com.miempresa.totalhealth.auth.RegisterScreen
 import com.miempresa.totalhealth.auth.UserRole
 import com.miempresa.totalhealth.ui.HomeScreen
+import com.miempresa.totalhealth.ui.UserAppointmentsScreen
 import com.miempresa.totalhealth.settings.EditProfileScreen
 import com.miempresa.totalhealth.dailylog.DailyLogScreen // Pantalla de usuario para registrar
 import com.miempresa.totalhealth.journal.ImprovementJournalScreen
@@ -154,6 +155,16 @@ fun AppNavigation() {
         composable(AppRoutes.REGISTER) { RegisterScreen(navController, authViewModel) }
 
         composable(AppRoutes.HOME_USER) { HomeScreen(navController, authViewModel) }
+        // --- Pantalla de citas del usuario ---
+        composable("appointments_screen") {
+            val appointmentsViewModel: AppointmentsViewModel = viewModel()
+            val userId = authViewModel.getCurrentUser()?.uid ?: ""
+            com.miempresa.totalhealth.ui.UserAppointmentsScreen(
+                navController = navController,
+                appointmentsViewModel = appointmentsViewModel,
+                userId = userId
+            )
+        }
         // --- Pantalla de chat real ---
         composable("chat_screen") {
             val chatViewModel: ChatViewModel = viewModel()

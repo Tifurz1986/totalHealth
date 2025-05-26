@@ -33,6 +33,21 @@ class AppointmentsViewModel : ViewModel() {
     }
 
     /**
+     * Obtiene todas las citas de un usuario concreto (por userId).
+     */
+    fun fetchAppointmentsForUser(userId: String) {
+        db.collection("appointments")
+            .whereEqualTo("userId", userId)
+            .get()
+            .addOnSuccessListener { result ->
+                val appointments = result.documents.mapNotNull { doc ->
+                    doc.toObject(Appointment::class.java)?.copy(id = doc.id)
+                }
+                _appointments.value = appointments
+            }
+    }
+
+    /**
      * Crea una cita nueva en Firestore.
      */
     fun createAppointment(appointment: Appointment, onSuccess: () -> Unit = {}, onFailure: (Exception) -> Unit = {}) {

@@ -62,6 +62,9 @@ import com.miempresa.totalhealth.content.WeeklyPhraseUiState
 import com.miempresa.totalhealth.content.WeeklyPhraseViewModel
 import com.miempresa.totalhealth.auth.AuthViewModel
 import com.miempresa.totalhealth.auth.UserProfileUiState
+
+// Importa tu ViewModel para citas reales
+import com.miempresa.totalhealth.trainer.calendar.AppointmentsViewModel
 import kotlinx.coroutines.delay
 
 
@@ -114,6 +117,27 @@ fun HomeScreen(
         }
         return
     }
+
+    // ViewModel para citas reales del usuario
+    val appointmentsViewModel: AppointmentsViewModel = viewModel()
+    val appointments by appointmentsViewModel.appointments.collectAsState()
+    LaunchedEffect(currentUser.uid) {
+        appointmentsViewModel.fetchAppointmentsForUser(currentUser.uid)
+    }
+
+    // Buscar la cita más próxima en el futuro
+    val now = java.time.LocalDateTime.now()
+    val proximaCitaReal = appointments
+        .mapNotNull { cita ->
+            try {
+                val fecha = java.time.LocalDateTime.parse(cita.timestamp)
+                if (fecha.isAfter(now)) cita to fecha else null
+            } catch (e: Exception) {
+                null
+            }
+        }
+        .minByOrNull { it.second }
+        ?.first
 
     Scaffold(
         bottomBar = {
@@ -313,10 +337,16 @@ fun HomeScreen(
                     animationDelay = 200
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                val proximaCita = remember { mutableStateOf("Viernes 24 mayo, 18:30") }
                 AnimatedFeatureCard(
                     title = "Próxima cita",
-                    description = if (proximaCita.value.isNotBlank()) proximaCita.value else "Sin próximas citas",
+                    description = when {
+                        proximaCitaReal != null -> {
+                            val fecha = java.time.LocalDateTime.parse(proximaCitaReal.timestamp)
+                            val fechaFormat = fecha.format(java.time.format.DateTimeFormatter.ofPattern("EEEE d MMMM, HH:mm"))
+                            "$fechaFormat\n${proximaCitaReal.notes ?: ""}"
+                        }
+                        else -> "Sin próximas citas"
+                    },
                     icon = Icons.Filled.CalendarMonth,
                     onClick = { navController.navigate("appointments_screen") },
                     colorGlow = colorVerdeSecundario,
