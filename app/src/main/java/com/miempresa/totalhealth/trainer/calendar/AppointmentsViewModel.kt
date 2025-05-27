@@ -48,6 +48,24 @@ class AppointmentsViewModel : ViewModel() {
     }
 
     /**
+     * Obtiene todas las citas de un entrenador concreto (por trainerId y día).
+     */
+    fun fetchAppointmentsForTrainerDay(trainerId: String, selectedDate: LocalDate) {
+        val dateStr = selectedDate.format(DateTimeFormatter.ISO_DATE)
+        db.collection("appointments")
+            .whereEqualTo("trainerId", trainerId)
+            .get()
+            .addOnSuccessListener { result ->
+                val appointments = result.documents.mapNotNull { doc ->
+                    doc.toObject(Appointment::class.java)?.copy(id = doc.id)
+                }.filter { appointment ->
+                    appointment.timestamp.startsWith(dateStr)
+                }
+                _appointments.value = appointments
+            }
+    }
+
+    /**
      * Crea una cita nueva en Firestore.
      */
     fun createAppointment(appointment: Appointment, onSuccess: () -> Unit = {}, onFailure: (Exception) -> Unit = {}) {

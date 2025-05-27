@@ -1,33 +1,56 @@
 package com.miempresa.totalhealth.trainer
 
+import com.miempresa.totalhealth.trainer.calendar.TrainerAppointmentsCalendarSection
+import com.miempresa.totalhealth.trainer.DashboardMetricsUiState
+import com.miempresa.totalhealth.trainer.UserListUiState
+
 import android.annotation.SuppressLint
 import android.util.Log
-import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardColors
+import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -36,8 +59,38 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.miempresa.totalhealth.auth.AuthViewModel
 import com.miempresa.totalhealth.auth.UserProfile
+import com.miempresa.totalhealth.trainer.calendar.AppointmentsViewModel
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
+import java.util.Locale
+
+val GoldColor = Color(0xFFFFD700)
+val DarkCharcoalColor = Color(0xFF23211C)
+val DeepBlackColor = Color(0xFF141414)
+val CardBackgroundColor = Color(0xFF181818)
+val SoftGoldColor = Color(0xFFE3C15B)
+val PaleGoldColor = Color(0xFFEEE8BB)
+
+fun LazyListScope.UserListPro(users: List<UserProfile>, navController: NavController) {
+    val uniqueUsers = users.filter { it.uid.isNotBlank() }.distinctBy { it.uid }
+    if (uniqueUsers.isEmpty()) {
+        item {
+            Text(
+                text = "No hay usuarios para mostrar.",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 30.dp),
+                color = SoftGoldColor,
+                fontSize = 16.sp,
+                textAlign = TextAlign.Center
+            )
+        }
+    } else {
+        items(uniqueUsers) { user ->
+            UserItemPro(user = user, navController = navController)
+        }
+    }
+}
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,36 +98,74 @@ import java.time.format.DateTimeFormatter
 fun TrainerHomeScreen(
     navController: NavController,
     authViewModel: AuthViewModel,
-    trainerViewModel: TrainerViewModel = viewModel()
+    trainerViewModel: TrainerViewModel = viewModel(),
+    appointmentsViewModel: AppointmentsViewModel = viewModel()
 ) {
     val userListUiState by trainerViewModel.userListUiState.collectAsState()
-    val dashboardMetricsState by trainerViewModel.dashboardMetricsUiState.collectAsState() // Observar el nuevo estado
+    val dashboardMetricsState by trainerViewModel.dashboardMetricsUiState.collectAsState()
+
+    val currentUserEmail = authViewModel.getCurrentUser()?.email
+    val trainerName = currentUserEmail?.substringBefore("@")?.replaceFirstChar { it.uppercase() } ?: "Entrenador"
 
     val blackToGoldGradientBrush = Brush.verticalGradient(
-        colors = listOf(
-            Color(0xFF141414), // Un negro más profundo
-            Color(0xFF23211C), // Un carbón oscuro
-            Color(0xFFFFD700)  // Oro
-        )
+        colors = listOf(DeepBlackColor, DarkCharcoalColor, GoldColor)
     )
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Panel de Entrenador", color = Color.White, fontWeight = FontWeight.Bold) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF181818)), // Un gris muy oscuro para la barra
+                title = {
+                    Text(
+                        text = "Bienvenido, $trainerName",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = GoldColor,
+                        maxLines = 1
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = CardBackgroundColor),
                 actions = {
-                    IconButton(onClick = {
-                        trainerViewModel.fetchAllUsers()
-                        trainerViewModel.fetchDashboardMetrics() // Refrescar también las métricas
-                    }) {
-                        Icon(Icons.Filled.Refresh, contentDescription = "Refrescar", tint = Color(0xFFFFD700))
+                    IconButton(
+                        onClick = {
+                            trainerViewModel.fetchAllUsers()
+                            trainerViewModel.fetchDashboardMetrics()
+                        }
+                    ) {
+                        Icon(Icons.Filled.Refresh, contentDescription = "Refrescar", tint = GoldColor)
                     }
                     IconButton(onClick = { authViewModel.logoutUser() }) {
-                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Cerrar sesión", tint = Color(0xFFFFD700))
+                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Cerrar sesión", tint = GoldColor)
                     }
                 }
             )
+        },
+        bottomBar = {
+            NavigationBar(containerColor = CardBackgroundColor) {
+                NavigationBarItem(
+                    selected = true,
+                    onClick = { /* TODO: Navegar a Home */ },
+                    icon = { Icon(Icons.Filled.Home, contentDescription = "Inicio") },
+                    label = { Text("Inicio") }
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = { /* TODO: Navegar a Citas */ },
+                    icon = { Icon(Icons.Filled.CalendarMonth, contentDescription = "Citas") },
+                    label = { Text("Citas") }
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = { /* TODO: Navegar a Lesionados */ },
+                    icon = { Icon(Icons.Filled.Assessment, contentDescription = "Lesionados") },
+                    label = { Text("Lesionados") }
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = { /* TODO: Navegar a Chat */ },
+                    icon = { Icon(Icons.Filled.Chat, contentDescription = "Chat") },
+                    label = { Text("Chat") }
+                )
+            }
         }
     ) { paddingValues ->
         Box(
@@ -83,141 +174,79 @@ fun TrainerHomeScreen(
                 .background(brush = blackToGoldGradientBrush)
                 .padding(paddingValues)
         ) {
-            Column(modifier = Modifier.padding(14.dp).fillMaxSize()) { // Asegurar que la columna pueda hacer scroll si el contenido excede
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                item {
+                    SectionTitle(title = "Gestión de Citas")
+                }
 
-                // Acceso premium al calendario
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(70.dp)
-                        .padding(bottom = 20.dp)
-                        .shadow(12.dp, RoundedCornerShape(18.dp))
-                        .border(2.dp, Color(0xFFFFD700), RoundedCornerShape(18.dp))
-                        .clickable { navController.navigate("trainer_calendar") },
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF181818)),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
+                item {
+                    Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                brush = Brush.horizontalGradient(
-                                    colors = listOf(Color(0xFFFFD700), Color(0xFF23211C), Color(0xFF181818))
-                                )
-                            )
-                            .padding(horizontal = 18.dp)
+                            .fillMaxWidth()
+                            .heightIn(max = 600.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Event,
-                            contentDescription = "Calendario de citas",
-                            tint = Color.Black,
-                            modifier = Modifier.size(38.dp)
-                        )
-                        Spacer(modifier = Modifier.width(18.dp))
-                        Text(
-                            text = "Ver Calendario de Citas",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp
+                        TrainerAppointmentsCalendarSection(
+                            trainerId = authViewModel.getCurrentUser()?.uid ?: "",
+                            appointmentsViewModel = appointmentsViewModel
                         )
                     }
                 }
 
-                Text(
-                    text = "Panel del Entrenador",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    modifier = Modifier.padding(bottom = 20.dp)
-                )
-
-                // Mostrar las métricas del dashboard basadas en el estado
-                when (val metricsState = dashboardMetricsState) {
-                    is DashboardMetricsUiState.Loading -> {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(14.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            MetricCardPro(title = "Usuarios", valueString = "...", icon = Icons.Default.People, modifier = Modifier.weight(1f))
-                            MetricCardPro(title = "Reportes Hoy", valueString = "...", icon = Icons.Default.Assessment, modifier = Modifier.weight(1f))
-                            MetricCardPro(title = "Citas Hoy", valueString = "...", icon = Icons.Default.Event, modifier = Modifier.weight(1f))
-                        }
-                    }
-                    is DashboardMetricsUiState.Success -> {
-                        DashboardMetricsContent( // Cambiado el nombre para evitar conflicto con el composable anterior
-                            totalUsers = metricsState.totalUsers,
-                            reportsToday = metricsState.reportsToday,
-                            appointmentsToday = metricsState.appointmentsToday
-                        )
-                    }
-                    is DashboardMetricsUiState.Error -> {
-                        Text(
-                            text = "Error al cargar métricas: ${metricsState.message}",
-                            color = Color.Red,
-                            fontWeight = FontWeight.SemiBold,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp, horizontal = 16.dp)
-                                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                                .padding(8.dp)
-                        )
-                        // Opcionalmente, mostrar las cards con valores de error o guiones
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(14.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            MetricCardPro(title = "Usuarios", valueString = "-", icon = Icons.Default.People, modifier = Modifier.weight(1f))
-                            MetricCardPro(title = "Reportes Hoy", valueString = "-", icon = Icons.Default.Assessment, modifier = Modifier.weight(1f))
-                            MetricCardPro(title = "Citas Hoy", valueString = "-", icon = Icons.Default.Event, modifier = Modifier.weight(1f))
-                        }
-                    }
+                item {
+                    FullCalendarAccessCard(navController = navController)
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                item {
+                    GoldHorizontalDivider()
+                }
 
-                TrainerCalendarSection() // Esto sigue con datos de ejemplo por ahora
-
-                Text(
-                    text = "Usuarios Registrados",
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFFFFD700), // Dorado para el título
-                    modifier = Modifier.padding(bottom = 20.dp, top = 24.dp)
-                )
+                item {
+                    SectionTitle(title = "Usuarios Registrados")
+                }
 
                 when (val state = userListUiState) {
-                    is UserListUiState.Loading -> CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 30.dp),
-                        color = Color(0xFFFFD700) // Dorado para el indicador
-                    )
-                    is UserListUiState.Success -> {
-                        if (state.users.isEmpty()) {
-                            Text(
-                                text = "No hay usuarios registrados.",
-                                modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 30.dp),
-                                color = Color(0xFFE3C15B), // Un dorado más suave
-                                fontSize = 18.sp,
-                                textAlign = TextAlign.Center
-                            )
-                        } else {
-                            UserListPro(users = state.users, navController = navController)
-                        }
-                    }
-                    is UserListUiState.Error -> {
-                        Text(
-                            text = state.message,
+                    is UserListUiState.Loading -> item {
+                        CircularProgressIndicator(
                             modifier = Modifier
-                                .align(Alignment.CenterHorizontally)
-                                .padding(top = 30.dp, start = 16.dp, end = 16.dp)
-                                .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
-                                .padding(16.dp),
-                            color = Color(0xFFFFA500), // Naranja/ámbar para errores
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center
+                                .fillMaxWidth()
+                                .wrapContentWidth(Alignment.CenterHorizontally)
+                                .padding(vertical = 30.dp),
+                            color = GoldColor
                         )
                     }
+                    is UserListUiState.Success -> {
+                        val users = state.users.filter { it.uid.isNotBlank() }.distinctBy { it.uid }
+                        if (users.isEmpty()) {
+                            item {
+                                Text(
+                                    text = "No hay usuarios para mostrar.",
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 30.dp),
+                                    color = SoftGoldColor,
+                                    fontSize = 16.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        } else {
+                            items(users) { user ->
+                                UserItemPro(user = user, navController = navController)
+                                Spacer(modifier = Modifier.height(16.dp))
+                            }
+                        }
+                    }
+                    is UserListUiState.Error -> item {
+                        ErrorStateDisplay(message = "Error al cargar usuarios: ${state.message}")
+                    }
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(20.dp))
                 }
             }
         }
@@ -225,235 +254,131 @@ fun TrainerHomeScreen(
 }
 
 @Composable
-fun DashboardMetricsContent( // Nuevo nombre para el Composable de contenido de métricas
-    totalUsers: Int,
-    reportsToday: Int,
-    appointmentsToday: Int
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+fun SectionTitle(title: String) {
+    Text(
+        text = title,
+        fontSize = 22.sp, // Ligeramente más pequeño que el saludo, pero prominente
+        fontWeight = FontWeight.Bold,
+        color = GoldColor, // O Color.White si prefieres variar
+        modifier = Modifier.padding(bottom = 12.dp)
+    )
+}
+
+@Composable
+fun GoldHorizontalDivider() {
+    HorizontalDivider(
+        color = GoldColor.copy(alpha = 0.8f), // Un poco más sutil
+        thickness = 1.dp,
         modifier = Modifier.fillMaxWidth()
-    ) {
-        MetricCardPro(
-            title = "Usuarios Totales",
-            value = totalUsers,
-            icon = Icons.Default.People,
-            modifier = Modifier.weight(1f)
-        )
-        MetricCardPro(
-            title = "Reportes Hoy",
-            value = reportsToday,
-            icon = Icons.Default.Assessment,
-            modifier = Modifier.weight(1f)
-        )
-        MetricCardPro(
-            title = "Citas Hoy",
-            value = appointmentsToday,
-            icon = Icons.Default.Event,
-            modifier = Modifier.weight(1f)
-        )
-    }
+    )
 }
 
+
 @Composable
-fun MetricCardPro(
-    title: String,
-    value: Int,
-    icon: ImageVector,
-    modifier: Modifier = Modifier
-) {
-    val animatedValue by animateIntAsState(targetValue = value, label = title + "_int_val") // Etiqueta única para la animación
+fun FullCalendarAccessCard(navController: NavController) {
     Card(
-        modifier = modifier
-            .height(100.dp)
-            .shadow(10.dp, RoundedCornerShape(22.dp))
-            .border(2.dp, Color(0xFFFFD700), RoundedCornerShape(22.dp)), // Borde dorado
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF181818)), // Fondo oscuro para la tarjeta
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-    ) {
-        Row(
-            Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                icon,
-                contentDescription = null,
-                tint = Color(0xFFFFD700), // Icono dorado
-                modifier = Modifier
-                    .size(38.dp)
-                    .padding(end = 8.dp)
-            )
-            Column(
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = title,
-                    color = Color(0xFFE3C15B), // Dorado suave para el título
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = animatedValue.toString(),
-                    color = Color.White,
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.ExtraBold
-                )
-            }
-        }
-    }
-}
-
-// Sobrecarga de MetricCardPro para el estado de carga o error, mostrando un String
-@Composable
-fun MetricCardPro(
-    title: String,
-    valueString: String, // Para mostrar "..." o "-"
-    icon: ImageVector,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier
-            .height(100.dp)
-            .shadow(10.dp, RoundedCornerShape(22.dp))
-            .border(2.dp, Color(0xFFFFD700), RoundedCornerShape(22.dp)),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF181818)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-    ) {
-        Row(
-            Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                icon,
-                contentDescription = null,
-                tint = Color(0xFFFFD700),
-                modifier = Modifier
-                    .size(38.dp)
-                    .padding(end = 8.dp)
-            )
-            Column(
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = title,
-                    color = Color(0xFFE3C15B),
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = valueString, // Mostrar el string directamente
-                    color = Color.White,
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.ExtraBold
-                )
-            }
-        }
-    }
-}
-
-
-@Composable
-fun TrainerCalendarSection() {
-    val today = remember { LocalDate.now() }
-    var selectedDate by remember { mutableStateOf(today) }
-
-    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(4.dp)
+            .height(70.dp)
+            .shadow(12.dp, RoundedCornerShape(18.dp))
+            .border(2.dp, GoldColor, RoundedCornerShape(18.dp))
+            .clickable { navController.navigate("trainer_calendar") }, // Ruta a la pantalla de calendario completo
+        colors = CardDefaults.cardColors(containerColor = CardBackgroundColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
-        Text(
-            text = "Calendario de Citas",
-            fontWeight = FontWeight.Bold,
-            fontSize = 20.sp,
-            color = Color(0xFFFFD700), // Dorado
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-        Card(
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .fillMaxWidth()
-                .shadow(10.dp, RoundedCornerShape(18.dp)),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF23211C)) // Carbón oscuro
+                .fillMaxSize()
+                .background(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(GoldColor, DarkCharcoalColor, CardBackgroundColor)
+                    )
+                )
+                .padding(horizontal = 18.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                HorizontalCalendar(
-                    startDate = today.minusDays(15),
-                    endDate = today.plusDays(15),
-                    selectedDate = selectedDate,
-                    onDateSelected = { date -> selectedDate = date }
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(
-                    text = "Citas para ${selectedDate.format(DateTimeFormatter.ofPattern("dd MMM uuuu"))}", // 'uuuu' para año
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = Color.White
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                // DATOS DE EJEMPLO - REEMPLAZAR CON DATOS REALES DEL VIEWMODEL
-                Text(
-                    text = "• Sesión con María (10:00 AM)\n• Evaluación con Jorge (2:00 PM)",
-                    fontSize = 14.sp,
-                    color = Color(0xFFE7DFA1), // Un blanco hueso/dorado pálido
-                    modifier = Modifier.padding(top = 2.dp),
-                    lineHeight = 20.sp
-                )
-            }
+            Icon(
+                imageVector = Icons.Default.CalendarMonth, // Icono más descriptivo
+                contentDescription = "Ver Calendario Completo",
+                tint = Color.Black, // Para contraste con el fondo dorado
+                modifier = Modifier.size(38.dp)
+            )
+            Spacer(modifier = Modifier.width(18.dp))
+            Text(
+                text = "Calendario Completo y Citas",
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp // Ligeramente ajustado
+            )
         }
     }
 }
 
+
+
 @Composable
-fun HorizontalCalendar(
-    startDate: LocalDate,
+fun ErrorStateDisplay(message: String) {
+    Text(
+        text = message,
+        color = Color.Red,
+        fontWeight = FontWeight.SemiBold,
+        textAlign = TextAlign.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+            .background(CardBackgroundColor.copy(alpha = 0.7f), RoundedCornerShape(8.dp))
+            .padding(16.dp)
+    )
+}
+
+
+
+
+
+
+@Composable
+fun HorizontalCalendar( // Este Composable parece estar definido en otro archivo (TrainerAppointmentsCalendarSection), lo incluyo aquí para completitud si fuera local.
+    startDate: LocalDate,             // Si está en TrainerAppointmentsCalendarSection, esta copia local puede ser eliminada o ajustada.
     endDate: LocalDate,
     selectedDate: LocalDate,
-    onDateSelected: (LocalDate) -> Unit
+    onDateSelected: (LocalDate) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    val dates = remember {
+    val dates = remember(startDate, endDate) { // Recalcular solo si las fechas de inicio/fin cambian
         generateSequence(startDate) { it.plusDays(1) }
             .takeWhile { !it.isAfter(endDate) }
             .toList()
     }
 
     LazyRow(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(horizontal = 4.dp) // Añadir un poco de padding
+        contentPadding = PaddingValues(horizontal = 4.dp)
     ) {
-        items(dates) { date ->
+        items(items = dates, key = { date -> date.toEpochDay() }) { date -> // Usar una clave estable
             val isSelected = date == selectedDate
-            val backgroundColor = if (isSelected) Color(0xFFFFD700) else Color.DarkGray.copy(alpha = 0.5f) // Más sutil si no está seleccionada
-            val textColor = if (isSelected) Color.Black else Color.White
+            val backgroundColor = if (isSelected) GoldColor else CardBackgroundColor.copy(alpha = 0.7f)
+            val textColor = if (isSelected) DeepBlackColor else Color.White
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp)) // Bordes más redondeados
+                    .clip(RoundedCornerShape(12.dp))
                     .background(backgroundColor)
                     .clickable { onDateSelected(date) }
-                    .padding(horizontal = 12.dp, vertical = 10.dp) // Ajustar padding
-                    .width(60.dp) // Ancho fijo para consistencia
+                    .padding(horizontal = 10.dp, vertical = 8.dp) // Ajustar padding
+                    .width(56.dp) // Ancho fijo
             ) {
                 Text(
-                    text = date.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault()).uppercase(), // Mejor formato para día
+                    text = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()).uppercase(),
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                     color = textColor,
-                    fontSize = 10.sp // Ligeramente más pequeño
+                    fontSize = 10.sp
                 )
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(4.dp)) // Un poco más de espacio
                 Text(
                     text = date.dayOfMonth.toString(),
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), // Más grande y negrita
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = textColor,
                     fontSize = 18.sp
                 )
@@ -462,22 +387,6 @@ fun HorizontalCalendar(
     }
 }
 
-@Composable
-fun UserListPro(users: List<UserProfile>, navController: NavController) {
-    // Filtrar usuarios con uid vacío y duplicados
-    val uniqueUsers = users
-        .filter { it.uid.isNotBlank() }
-        .distinctBy { it.uid }
-
-    LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(vertical = 8.dp)
-    ) {
-        items(uniqueUsers, key = { user -> user.uid }) { user ->
-            UserItemPro(user = user, navController = navController)
-        }
-    }
-}
 
 @Composable
 fun UserItemPro(user: UserProfile, navController: NavController) {
@@ -487,62 +396,66 @@ fun UserItemPro(user: UserProfile, navController: NavController) {
         modifier = Modifier
             .fillMaxWidth()
             .shadow(12.dp, RoundedCornerShape(28.dp))
-            .border(1.dp, Color(0xFFFFD700).copy(alpha = 0.8f), RoundedCornerShape(28.dp)) // Borde más sutil
+            .border(1.dp, GoldColor.copy(alpha = 0.7f), RoundedCornerShape(28.dp))
             .clickable {
                 Log.d(TAG, "UserItem clicked. User Name: ${user.fullName}, User Email: ${user.email}, User UID: '${user.uid}'")
                 if (user.uid.isNotBlank()) {
                     navController.navigate("trainer_user_detail/${user.uid}")
                 } else {
-                    Log.w(TAG, "UID is blank. Navigation skipped.")
+                    Log.w(TAG, "UID is blank for user ${user.fullName}. Navigation skipped.")
                 }
             },
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1C).copy(alpha = 0.9f)) // Ligeramente más transparente
+        colors = CardDefaults.cardColors(containerColor = DarkCharcoalColor.copy(alpha = 0.9f))
     ) {
         Row(
-            modifier = Modifier.padding(20.dp).fillMaxWidth(),
+            modifier = Modifier.padding(16.dp).fillMaxWidth(), // Padding ligeramente reducido
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(58.dp)
-                    .background(Color(0xFFFFD700), CircleShape)
-                    .border(2.dp, Color.White.copy(alpha = 0.3f), CircleShape), // Borde sutil al círculo
+                    .size(54.dp) // Ligeramente ajustado
+                    .background(GoldColor, CircleShape)
+                    .border(1.dp, Color.White.copy(alpha = 0.4f), CircleShape), // Borde más visible
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.AccountCircle,
-                    contentDescription = "Icono de Usuario",
-                    modifier = Modifier.size(46.dp),
-                    tint = Color(0xFF23211C) // Icono oscuro sobre fondo dorado
+                    contentDescription = "Icono de Usuario ${user.fullName}", // Mejor accesibilidad
+                    modifier = Modifier.size(42.dp), // Ligeramente ajustado
+                    tint = DeepBlackColor
                 )
             }
-            Spacer(modifier = Modifier.width(20.dp))
+            Spacer(modifier = Modifier.width(16.dp)) // Espaciador ajustado
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = user.fullName.ifEmpty { "Nombre no disponible" },
                     fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = Color.White
+                    fontSize = 17.sp, // Ajustado
+                    color = Color.White,
+                    maxLines = 1
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = user.email.ifEmpty { "Email no disponible" },
-                    fontSize = 15.sp,
-                    color = Color(0xFFEEE8BB) // Dorado pálido para el email
+                    fontSize = 14.sp, // Ajustado
+                    color = PaleGoldColor,
+                    maxLines = 1
                 )
                 if (user.role.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(7.dp))
+                    Spacer(modifier = Modifier.height(6.dp)) // Ajustado
                     Box(
                         modifier = Modifier
-                            .background(Color(0xFFFFD700).copy(alpha = 0.8f), RoundedCornerShape(8.dp)) // Fondo más sutil para el rol
-                            .padding(horizontal = 10.dp, vertical = 3.dp) // Ajustar padding vertical
+                            .background(GoldColor.copy(alpha = 0.2f), RoundedCornerShape(8.dp)) // Fondo más sutil para el rol
+                            .border(1.dp, GoldColor.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
                             text = user.role.uppercase(),
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF23211C), // Texto oscuro
-                            fontSize = 12.sp // Ligeramente más pequeño
+                            color = GoldColor, // Texto dorado para mejor contraste con fondo sutil
+                            fontSize = 11.sp, // Ajustado
+                            letterSpacing = 0.5.sp // Mejor legibilidad para uppercase
                         )
                     }
                 }
@@ -550,17 +463,18 @@ fun UserItemPro(user: UserProfile, navController: NavController) {
             // Botón para agendar cita
             IconButton(
                 onClick = {
-                    // Aquí deberías lanzar una pantalla o diálogo para crear la cita
-                    navController.navigate("create_appointment/${user.uid}")
+                    if (user.uid.isNotBlank()) {
+                        navController.navigate("create_appointment/${user.uid}")
+                    } else {
+                        Log.w(TAG, "Cannot create appointment, UID is blank for user ${user.fullName}")
+                    }
                 },
-                modifier = Modifier
-                    .size(32.dp)
-                    .padding(start = 8.dp)
+                modifier = Modifier.size(40.dp) // Un poco más grande para facilitar el toque
             ) {
                 Icon(
                     imageVector = Icons.Default.Event,
-                    contentDescription = "Crear Cita",
-                    tint = Color(0xFFFFD700)
+                    contentDescription = "Crear Cita para ${user.fullName}", // Mejor accesibilidad
+                    tint = GoldColor
                 )
             }
         }
