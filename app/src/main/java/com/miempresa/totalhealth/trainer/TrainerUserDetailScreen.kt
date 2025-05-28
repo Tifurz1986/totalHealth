@@ -1,8 +1,8 @@
 package com.miempresa.totalhealth.trainer
 
 import android.annotation.SuppressLint
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
+import android.graphics.Color as AndroidColor
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -12,14 +12,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.RestaurantMenu
 import androidx.compose.material.icons.filled.HistoryEdu
-import androidx.compose.material.icons.filled.Summarize // Icono para Reportes Diarios
-import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.RestaurantMenu
+import androidx.compose.material.icons.filled.Summarize
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -29,19 +27,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
+import com.github.mikephil.charting.charts.BarChart
+import com.github.mikephil.charting.components.XAxis
+import com.github.mikephil.charting.data.BarData
+import com.github.mikephil.charting.data.BarDataSet
+import com.github.mikephil.charting.data.BarEntry
+import com.miempresa.totalhealth.dailylog.DailyLogViewModel
 import com.miempresa.totalhealth.ui.common.PremiumButton
-import com.miempresa.totalhealth.ui.theme.PremiumDarkCharcoal
-import com.miempresa.totalhealth.ui.theme.PremiumGold
-import com.miempresa.totalhealth.ui.theme.PremiumIconGold
-import com.miempresa.totalhealth.ui.theme.OriginalDetailLabelColor
-import com.miempresa.totalhealth.ui.theme.OriginalDetailValueColor
-import com.miempresa.totalhealth.ui.theme.OriginalGradientTop
-import com.miempresa.totalhealth.ui.theme.OriginalGradientMid
-import com.miempresa.totalhealth.ui.theme.OriginalButtonTextColor
-import com.miempresa.totalhealth.ui.theme.OriginalCardBackground
+import com.miempresa.totalhealth.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -227,22 +224,16 @@ fun TrainerUserDetailScreen(
                             contentDescription = "Reportes diarios del usuario"
                         )
                         // --- FIN DE NUEVO BOTÓN ---
+                        Spacer(Modifier.height(24.dp))
 
-                        // --- NUEVO BOTÓN PARA CREAR CITA ---
-                        Spacer(Modifier.height(12.dp))
-
-                        PremiumButton(
-                            text = "Crear Cita para este Usuario",
-                            onClick = {
-                                navController.navigate("createAppointment/${user.uid}/${viewModel.trainerId}")
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 32.dp),
-                            icon = Icons.Filled.CalendarToday,
-                            contentDescription = "Crear nueva cita para el usuario"
+                        Text(
+                            text = "Estadísticas de Estados de Ánimo",
+                            color = PremiumGold,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                            modifier = Modifier.padding(vertical = 8.dp)
                         )
-                        // --- FIN NUEVO BOTÓN CREAR CITA ---
+                        EmotionBarChart(userId = user.uid)
                     }
                 }
                 is UserProfileDetailUiState.Loading -> {
@@ -326,6 +317,63 @@ fun RegisterProgressButtonOriginal(modifier: Modifier = Modifier, onClick: () ->
             "Registrar Progreso",
             fontSize = 19.sp,
             fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+
+@Composable
+fun EmotionBarChart(
+    userId: String,
+    viewModel: DailyLogViewModel = viewModel()
+) {
+    val emotionEntries by viewModel.getUserEmotionEntries(userId).collectAsState(initial = emptyList())
+    LaunchedEffect(emotionEntries) {
+        println("DEBUG Emotions: $emotionEntries")
+    }
+    val grouped = emotionEntries.groupingBy { it.mood }.eachCount()
+    val labels = grouped.keys.toList()
+    val values = grouped.values.mapIndexed { index, count -> BarEntry(index.toFloat(), count.toFloat()) }
+
+    if (labels.isNotEmpty()) {
+        AndroidView(
+            factory = { context ->
+                BarChart(context).apply {
+                    description.isEnabled = false
+                    setDrawGridBackground(false)
+                    setDrawBarShadow(false)
+                    setTouchEnabled(false)
+                    legend.isEnabled = false
+                    xAxis.position = XAxis.XAxisPosition.BOTTOM
+                    xAxis.setDrawGridLines(false)
+                    xAxis.granularity = 1f
+                    xAxis.labelCount = labels.size
+                    xAxis.valueFormatter = com.github.mikephil.charting.formatter.IndexAxisValueFormatter(labels)
+                    axisLeft.axisMinimum = 0f
+                    axisRight.isEnabled = false
+                    setScaleEnabled(false)
+                    setPinchZoom(false)
+                }
+            },
+            update = { chart ->
+                val dataSet = BarDataSet(values, "Emociones")
+                dataSet.setColors(
+                    AndroidColor.parseColor("#FFD700"), // Amarillo/dorado
+                    AndroidColor.parseColor("#1ABC9C"), // Verde-azul
+                    AndroidColor.parseColor("#2980B9"), // Azul
+                    AndroidColor.parseColor("#E74C3C"), // Rojo
+                    AndroidColor.parseColor("#8E44AD")  // Violeta, etc.
+                )
+                val data = BarData(dataSet)
+                data.barWidth = 0.8f
+                chart.data = data
+                chart.xAxis.valueFormatter = com.github.mikephil.charting.formatter.IndexAxisValueFormatter(labels)
+                chart.invalidate()
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(220.dp)
+                .padding(vertical = 12.dp)
         )
     }
 }

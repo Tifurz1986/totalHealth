@@ -155,7 +155,7 @@ fun TrainerHomeScreen(
                 )
                 NavigationBarItem(
                     selected = false,
-                    onClick = { /* TODO: Navegar a Lesionados */ },
+                    onClick = { navController.navigate("injury_reports") },
                     icon = { Icon(Icons.Filled.Assessment, contentDescription = "Lesionados") },
                     label = { Text("Lesionados") }
                 )

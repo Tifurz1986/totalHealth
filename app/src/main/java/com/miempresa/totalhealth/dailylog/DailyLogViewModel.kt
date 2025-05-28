@@ -19,6 +19,11 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
+import com.google.firebase.firestore.Query
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import com.miempresa.totalhealth.dailylog.EmotionEntry
+
 // Estados para la UI del registro diario
 sealed class DailyLogUiState {
     object Idle : DailyLogUiState()
@@ -127,5 +132,32 @@ class DailyLogViewModel : ViewModel() {
 
     fun getTodayDate(): Date {
         return normalizeDate(Date()) // Devuelve la fecha de hoy normalizada
+    }
+    fun getUserEmotionEntries(userId: String): Flow<List<EmotionEntry>> = flow {
+        val result = db.collection("emotions")
+            .whereEqualTo("userId", userId)
+            .orderBy("timestamp", Query.Direction.ASCENDING)
+            .get()
+            .await()
+
+        Log.d("DailyLogViewModel", "Documentos recuperados: ${result.documents.size}")
+
+        val emotions = result.documents.mapNotNull { doc ->
+            val mood = doc.getString("emotion") ?: ""
+            val moodIntensity = null // No tienes intensidad, pon null
+            val triggers = doc.getString("subemotion") ?: ""
+            val journalEntry = ""
+            val timestamp = doc.getLong("timestamp")?.let { Date(it) } ?: Date()
+            EmotionEntry(
+                mood = mood,
+                moodIntensity = moodIntensity,
+                triggers = triggers,
+                journalEntry = journalEntry,
+                timestamp = timestamp
+            )
+        }
+
+        Log.d("DailyLogViewModel", "Emociones encontradas para userId $userId: ${emotions.size}")
+        emit(emotions)
     }
 }

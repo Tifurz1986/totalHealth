@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun InjuryReportScreen(
     userId: String,
+    userName: String,
+    userEmail: String,
     onClose: () -> Unit
 ) {
     var zona by remember { mutableStateOf("") }
@@ -128,6 +130,8 @@ fun InjuryReportScreen(
                             error = null
                             InjuryReportRepository.saveInjuryReport(
                                 userId = userId,
+                                userName = userName,
+                                userEmail = userEmail,
                                 zona = zona,
                                 gravedad = gravedad,
                                 descripcion = descripcion,

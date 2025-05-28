@@ -53,6 +53,8 @@ import com.miempresa.totalhealth.trainer.history.dailylog.UserDailyLogHistoryScr
 import com.miempresa.totalhealth.ui.SubEmotionScreen
 // --- FIN DE IMPORTACIÓN ---
 
+import com.miempresa.totalhealth.trainer.injury.TrainerInjuryReportsScreen
+
 object AppRoutes {
     const val LOGIN = "login"
     const val REGISTER = "register"
@@ -300,6 +302,11 @@ fun AppNavigation() {
                 appointmentsViewModel = appointmentsViewModel,
                 navController = navController
             )
+        }
+
+        // Ruta para reportes de lesiones (trainer)
+        composable("injury_reports") {
+            TrainerInjuryReportsScreen()
         }
 
         // Ruta para pantalla de subemociones

@@ -70,6 +70,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
 
+    // MPAndroidChart - Gráficos emocionales
+    implementation(libs.mpandroidchart)
+
     // Dependencias de Test
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -594,6 +594,14 @@ fun HomeScreen(
     if (showInjuryReportDialog) {
         InjuryReportScreen(
             userId = currentUser.uid,
+            userName = when (val state = userProfileState) {
+                is UserProfileUiState.Success -> state.profile.name.ifBlank { currentUser.email?.substringBefore('@') ?: "Usuario" }
+                else -> currentUser.email?.substringBefore('@') ?: "Usuario"
+            },
+            userEmail = when (val state = userProfileState) {
+                is UserProfileUiState.Success -> state.profile.email ?: currentUser.email ?: ""
+                else -> currentUser.email ?: ""
+            },
             onClose = { showInjuryReportDialog = false }
         )
     }
