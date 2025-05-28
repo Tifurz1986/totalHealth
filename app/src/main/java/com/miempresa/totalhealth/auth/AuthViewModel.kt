@@ -63,6 +63,8 @@ class AuthViewModel : ViewModel() {
     private val db: FirebaseFirestore = Firebase.firestore
     private val storage = Firebase.storage
 
+    private var currentUserProfile: UserProfile? = null
+
     private val _authAndRoleUiState = MutableStateFlow<AuthAndRoleUiState>(AuthAndRoleUiState.Idle)
     val authAndRoleUiState: StateFlow<AuthAndRoleUiState> = _authAndRoleUiState.asStateFlow()
 
@@ -245,6 +247,7 @@ class AuthViewModel : ViewModel() {
 
                     if (userProfileData != null) {
                         _userProfileUiState.value = UserProfileUiState.Success(userProfileData)
+                        currentUserProfile = userProfileData
                         Log.d("AuthViewModel", "User profile loaded from Firestore: ${userProfileData.email}")
                     } else {
                         _userProfileUiState.value = UserProfileUiState.Error("Error al convertir datos del perfil.")
@@ -255,6 +258,7 @@ class AuthViewModel : ViewModel() {
                     userProfileData = UserProfile(uid = firebaseUser.uid, email = firebaseUser.email ?: "", role = "USER", createdAt = Date())
                     db.collection("users").document(firebaseUser.uid).set(userProfileData).await()
                     _userProfileUiState.value = UserProfileUiState.Success(userProfileData)
+                    currentUserProfile = userProfileData
                     mappedRole = UserRole.USER
                 }
                 _authAndRoleUiState.value = AuthAndRoleUiState.Authenticated(firebaseUser, mappedRole, userProfileData)
@@ -463,5 +467,9 @@ class AuthViewModel : ViewModel() {
             return null
         }
         return auth.currentUser
+    }
+
+    fun getCurrentUserProfile(): UserProfile? {
+        return currentUserProfile
     }
 }

@@ -7,6 +7,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.miempresa.totalhealth.auth.UserProfile // Asegúrate que esta es la ruta correcta
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,6 +29,9 @@ class TrainerUserDetailViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow<UserProfileDetailUiState>(UserProfileDetailUiState.Idle)
     val uiState: StateFlow<UserProfileDetailUiState> = _uiState.asStateFlow()
+
+    val trainerId: String
+        get() = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
     fun fetchUserProfile(userId: String?) {
         if (userId.isNullOrBlank()) {

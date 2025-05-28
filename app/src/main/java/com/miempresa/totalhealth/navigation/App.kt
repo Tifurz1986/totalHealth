@@ -314,6 +314,21 @@ fun AppNavigation() {
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
             com.miempresa.totalhealth.ui.SubEmotionScreen(navController, emotionName, userId)
         }
+
+        // Ruta dinámica para chat con userId
+        composable(
+            route = "chat/{userId}",
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            val trainerId = authViewModel.getCurrentUser()?.uid ?: ""
+            ChatScreen(
+                navController = navController,
+                userId = userId,
+                trainerId = trainerId,
+                userRole = UserRole.TRAINER
+            )
+        }
     }
 }
 }

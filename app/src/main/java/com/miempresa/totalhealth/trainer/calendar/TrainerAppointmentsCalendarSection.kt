@@ -153,6 +153,28 @@ fun TrainerAppointmentCard(cita: Appointment) {
     } catch (_: Exception) {
         null
     }
+
+    var userName by remember { mutableStateOf("Cargando...") }
+
+    LaunchedEffect(cita.userId) {
+        val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+        db.collection("users").document(cita.userId).get()
+            .addOnSuccessListener { document ->
+                if (document.exists()) {
+                    val name = document.getString("name") ?: ""
+                    val surname = document.getString("surname") ?: ""
+                    userName = "$name $surname".trim().ifEmpty {
+                        document.getString("email") ?: "Usuario desconocido"
+                    }
+                } else {
+                    userName = "Usuario no encontrado"
+                }
+            }
+            .addOnFailureListener {
+                userName = "Error al cargar"
+            }
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -179,7 +201,7 @@ fun TrainerAppointmentCard(cita: Appointment) {
                     fontSize = 16.sp
                 )
                 Text(
-                    text = "Usuario: ${cita.userId}",
+                    text = "Usuario: $userName",
                     color = Color(0xFFE7DFA1),
                     fontSize = 13.sp
                 )

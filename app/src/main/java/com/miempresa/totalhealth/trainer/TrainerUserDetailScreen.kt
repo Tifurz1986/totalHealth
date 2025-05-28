@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.RestaurantMenu
 import androidx.compose.material.icons.filled.HistoryEdu
 import androidx.compose.material.icons.filled.Summarize // Icono para Reportes Diarios
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -226,6 +227,22 @@ fun TrainerUserDetailScreen(
                             contentDescription = "Reportes diarios del usuario"
                         )
                         // --- FIN DE NUEVO BOTÓN ---
+
+                        // --- NUEVO BOTÓN PARA CREAR CITA ---
+                        Spacer(Modifier.height(12.dp))
+
+                        PremiumButton(
+                            text = "Crear Cita para este Usuario",
+                            onClick = {
+                                navController.navigate("createAppointment/${user.uid}/${viewModel.trainerId}")
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 32.dp),
+                            icon = Icons.Filled.CalendarToday,
+                            contentDescription = "Crear nueva cita para el usuario"
+                        )
+                        // --- FIN NUEVO BOTÓN CREAR CITA ---
                     }
                 }
                 is UserProfileDetailUiState.Loading -> {

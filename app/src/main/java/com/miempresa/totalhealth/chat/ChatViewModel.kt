@@ -90,10 +90,11 @@ class ChatViewModel : ViewModel() {
     /**
      * Envía un nuevo mensaje de texto si es válido.
      *
-     * @param userId ID del usuario que envía el mensaje.
+     * @param senderId ID del usuario que envía el mensaje.
+     * @param senderName Nombre del usuario que envía el mensaje.
      * @param text Texto del mensaje.
      */
-    fun sendMessage(userId: String, text: String) {
+    fun sendMessage(senderId: String, senderName: String, text: String) {
         if (text.isBlank()) {
             Log.w("ChatViewModel", "Intento de enviar mensaje vacío o en blanco")
             return
@@ -107,7 +108,8 @@ class ChatViewModel : ViewModel() {
 
         try {
             val newMsg = ChatMessage(
-                senderId = userId,
+                senderId = senderId,
+                senderName = senderName,
                 text = text.trim(),
                 timestamp = System.currentTimeMillis()
             )

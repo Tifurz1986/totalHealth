@@ -219,8 +219,8 @@ fun CreateAppointmentScreen(
                             try {
                                 val timestamp = LocalDateTime.parse(dateInput, DateTimeFormatter.ISO_LOCAL_DATE_TIME).toString()
                                 val appointment = com.miempresa.totalhealth.trainer.model.Appointment(
-                                    trainerId = trainerId,
-                                    userId = userId,
+                                    userId = userId,         // ✅ usuario al que va la cita
+                                    trainerId = trainerId,   // ✅ entrenador que la crea
                                     timestamp = timestamp,
                                     notes = notes
                                 )

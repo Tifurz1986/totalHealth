@@ -477,6 +477,23 @@ fun UserItemPro(user: UserProfile, navController: NavController) {
                     tint = GoldColor
                 )
             }
+            // Botón para abrir chat con el usuario
+            IconButton(
+                onClick = {
+                    if (user.uid.isNotBlank()) {
+                        navController.navigate("chat/${user.uid}")
+                    } else {
+                        Log.w(TAG, "Cannot navigate to chat, UID is blank for user ${user.fullName}")
+                    }
+                },
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Chat,
+                    contentDescription = "Chatear con ${user.fullName}",
+                    tint = SoftGoldColor
+                )
+            }
         }
     }
 }

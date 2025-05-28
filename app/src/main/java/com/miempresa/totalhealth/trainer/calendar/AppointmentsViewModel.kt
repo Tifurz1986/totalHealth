@@ -54,6 +54,7 @@ class AppointmentsViewModel : ViewModel() {
         val dateStr = selectedDate.format(DateTimeFormatter.ISO_DATE)
         db.collection("appointments")
             .whereEqualTo("trainerId", trainerId)
+            .orderBy("timestamp")
             .get()
             .addOnSuccessListener { result ->
                 val appointments = result.documents.mapNotNull { doc ->
@@ -61,7 +62,30 @@ class AppointmentsViewModel : ViewModel() {
                 }.filter { appointment ->
                     appointment.timestamp.startsWith(dateStr)
                 }
-                _appointments.value = appointments
+
+                val userIds = appointments.map { it.userId }.distinct()
+                if (userIds.isEmpty()) {
+                    _appointments.value = appointments
+                    return@addOnSuccessListener
+                }
+
+                db.collection("users")
+                    .whereIn("id", userIds)
+                    .get()
+                    .addOnSuccessListener { userResult ->
+                        val userIdToNameMap = userResult.documents.associate { doc ->
+                            val id = doc.id
+                            val name = doc.getString("name") ?: ""
+                            id to name
+                        }
+                        val enrichedAppointments = appointments.map { appointment ->
+                            appointment.copy(userName = userIdToNameMap[appointment.userId])
+                        }
+                        _appointments.value = enrichedAppointments
+                    }
+                    .addOnFailureListener {
+                        _appointments.value = appointments
+                    }
             }
     }
 
