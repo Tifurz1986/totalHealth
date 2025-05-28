@@ -70,13 +70,20 @@ class AppointmentsViewModel : ViewModel() {
                 }
 
                 db.collection("users")
-                    .whereIn("id", userIds)
+                    .whereIn(com.google.firebase.firestore.FieldPath.documentId(), userIds)
                     .get()
                     .addOnSuccessListener { userResult ->
                         val userIdToNameMap = userResult.documents.associate { doc ->
                             val id = doc.id
                             val name = doc.getString("name") ?: ""
-                            id to name
+                            val surname = doc.getString("surname") ?: ""
+                            val fullName = "$name $surname".trim()
+                            val email = doc.getString("email") ?: ""
+                            id to when {
+                                fullName.isNotBlank() -> fullName
+                                email.isNotBlank() -> email
+                                else -> "Usuario desconocido"
+                            }
                         }
                         val enrichedAppointments = appointments.map { appointment ->
                             appointment.copy(userName = userIdToNameMap[appointment.userId])
