@@ -9,6 +9,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import android.util.Log
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -28,9 +30,18 @@ import com.miempresa.totalhealth.ui.theme.PremiumTextGold
 fun UserFoodReportHistoryScreen(
     navController: NavController,
     userId: String,
-    viewModel: UserFoodReportHistoryViewModel = viewModel(factory = UserFoodReportHistoryViewModel.Factory(userId))
+    viewModel: UserFoodReportHistoryViewModel = viewModel(factory = UserFoodReportHistoryViewModelFactory(userId))
 ) {
+    LaunchedEffect(userId) {
+        Log.d("userId_debug", "userId recibido: $userId")
+    }
     val foodReports by viewModel.foodReports.collectAsState()
+    LaunchedEffect(foodReports) {
+        Log.d("food_debug", "foodReports.size en UI: ${foodReports.size}")
+        foodReports.forEach { report ->
+            Log.d("food_debug", "FoodReport en UI: $report")
+        }
+    }
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
 

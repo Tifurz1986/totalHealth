@@ -44,6 +44,7 @@ class UserDailyLogHistoryViewModel(private val userId: String) : ViewModel() {
             try {
                 Log.d("UserDailyLogHistoryVM", "Fetching daily logs for user: $userId, from collection: $collectionName, ordering by $dateField DESC")
 
+                // Aquí ya se usa userId recibido por parámetro
                 val snapshot = db.collection(collectionName)
                     .whereEqualTo(userIdField, userId)
                     .orderBy(dateField, Query.Direction.DESCENDING)

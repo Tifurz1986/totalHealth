@@ -78,6 +78,11 @@ object AppRoutes {
     const val USER_DAILY_LOG_HISTORY = "user_daily_log_history/{userId}"
     // --- FIN DE NUEVA RUTA ---
 
+    // --- NUEVA RUTA PARA REPORTES DE LESIONES DEL USUARIO ---
+    const val USER_INJURY_REPORTS = "user_injury_reports/{userId}"
+    fun userInjuryReports(userId: String) = "user_injury_reports/$userId"
+    // --- FIN DE NUEVA RUTA ---
+
     fun trainerUserDetail(userId: String) = "trainer_user_detail/$userId"
     fun recordUserProgress(userId: String) = "record_user_progress/$userId"
     fun addEditImprovementEntry(entryId: String? = null) =
@@ -288,6 +293,20 @@ fun AppNavigation() {
         }
         // --- FIN DE NAVEGACIÓN ---
 
+        // --- NAVEGACIÓN PARA REPORTES DE LESIONES DEL USUARIO ---
+        composable(
+            route = AppRoutes.USER_INJURY_REPORTS,
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId")
+            if (userId != null) {
+                TrainerInjuryReportsScreen(navController = navController, userId = userId)
+            } else {
+                Text("Error: User ID no encontrado para reportes de lesiones.")
+            }
+        }
+        // --- FIN DE NAVEGACIÓN ---
+
         // Ruta para crear cita (trainer)
         composable(
             route = "create_appointment/{userId}",
@@ -304,10 +323,6 @@ fun AppNavigation() {
             )
         }
 
-        // Ruta para reportes de lesiones (trainer)
-        composable("injury_reports") {
-            TrainerInjuryReportsScreen()
-        }
 
         // Ruta para pantalla de subemociones
         composable(

@@ -35,20 +35,30 @@ class UserFoodReportHistoryViewModel(private val userId: String) : ViewModel() {
             _isLoading.value = true
             _error.value = null
             try {
-                // --- AJUSTA ESTOS VALORES SI ES NECESARIO ---
-                val collectionName = "food_reports"
-                val userIdField = "userId"
-                val dateField = "date"
-                // -----------------------------------------
-
-                val snapshot = db.collection(collectionName)
-                    .whereEqualTo(userIdField, userId)
-                    .orderBy(dateField, Query.Direction.DESCENDING)
+                val snapshot = db.collection("users")
+                    .document(userId)
+                    .collection("food_reports")
+                    .orderBy("mealTimestamp", Query.Direction.DESCENDING)
                     .get()
                     .await()
 
-                _foodReports.value = snapshot.documents.mapNotNull { doc ->
-                    doc.toObject(FoodReport::class.java)?.copy(id = doc.id)
+                Log.d("food_debug", "Documentos obtenidos: ${snapshot.size()}")
+                _foodReports.value = snapshot.documents.mapNotNull { document ->
+                    val mealType = document.getString("mealType")
+                    val comment = document.getString("comment")
+                    val timestamp = document.getTimestamp("mealTimestamp")
+                    val imageUrl = document.getString("imageUrl")
+                    if (mealType != null && timestamp != null) {
+                        FoodReport(
+                            id = document.id,
+                            mealType = mealType,
+                            comment = comment ?: "",
+                            mealTimestamp = timestamp.toDate(),
+                            imageUrl = imageUrl
+                        )
+                    } else {
+                        null
+                    }
                 }
             } catch (e: Exception) {
                 Log.e("FoodReportHistoryVM", "Error loading food reports for user $userId", e)
@@ -59,13 +69,14 @@ class UserFoodReportHistoryViewModel(private val userId: String) : ViewModel() {
         }
     }
 
-    @Suppress("UNCHECKED_CAST")
-    class Factory(private val userId: String) : ViewModelProvider.Factory {
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            if (modelClass.isAssignableFrom(UserFoodReportHistoryViewModel::class.java)) {
-                return UserFoodReportHistoryViewModel(userId) as T
-            }
-            throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
+}
+
+class UserFoodReportHistoryViewModelFactory(private val userId: String) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(UserFoodReportHistoryViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return UserFoodReportHistoryViewModel(userId) as T
         }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

@@ -1,14 +1,12 @@
 package com.miempresa.totalhealth.auth
 
-import java.util.Date // Necesario para el campo createdAt
+import java.util.Date
 
-// Definición ÚNICA y CONSOLIDADA de UserProfile.
-// Esta clase representa el modelo de datos para el perfil de un usuario.
 data class UserProfile(
     val uid: String = "",
     val email: String = "",
-    val name: String = "",      // Nombre del usuario
-    val surname: String = "",   // Apellido del usuario
+    val name: String = "",
+    val surname: String = "",
     val profilePictureUrl: String? = null,
     val age: Int? = null,
     val sex: String = "",
@@ -16,10 +14,11 @@ data class UserProfile(
     val weight: Double? = null,
     val activityLevel: String = "",
     val healthGoals: String = "",
-    val role: String = "USER", // Rol del usuario (ej. "USER", "TRAINER")
-    val createdAt: Date? = null // Fecha de creación del perfil
+    val role: String = "USER",
+    val createdAt: Date? = null,
+    val trackEmotions: Boolean = false // <-- Campo nuevo, por defecto en false
 ) {
-    // Constructor sin argumentos para Firestore.
+    // Constructor sin argumentos para Firestore/serialización automática
     constructor() : this(
         uid = "",
         email = "",
@@ -33,10 +32,10 @@ data class UserProfile(
         activityLevel = "",
         healthGoals = "",
         role = "USER",
-        createdAt = null // Se asignará explícitamente al crear un nuevo usuario
+        createdAt = null,
+        trackEmotions = false
     )
 
-    // Propiedad calculada para obtener el nombre completo.
     val fullName: String
         get() = "$name $surname".trim()
 }

@@ -52,6 +52,15 @@ fun LoginScreen(
     val colorVerdePrincipal = Color(0xFF00897B)
     val colorVerdeOscuroDegradado = Color(0xFF004D40)
 
+    // Llamada automática a loginUser() si el estado es Idle, con credenciales de prueba.
+    LaunchedEffect(Unit) {
+        if (authState is AuthAndRoleUiState.Idle) {
+            authViewModel.onEmailChange("entrenador")
+            authViewModel.onPasswordChange("123456")
+            authViewModel.loginUser()
+        }
+    }
+
     LaunchedEffect(key1 = authState) {
         Log.d("LoginScreen", "authState changed: $authState")
         when (val state = authState) {

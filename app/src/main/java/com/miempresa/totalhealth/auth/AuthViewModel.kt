@@ -134,7 +134,8 @@ class AuthViewModel : ViewModel() {
                         name = "", // Se podrían pedir en el registro o dejar vacíos inicialmente
                         surname = "", // Se podrían pedir en el registro o dejar vacíos inicialmente
                         role = "USER", // Rol por defecto en Firestore
-                        createdAt = Date() // Establecer fecha de creación
+                        createdAt = Date(), // Establecer fecha de creación
+                        trackEmotions = false
                     )
                     try {
                         db.collection("users").document(firebaseUser.uid).set(userProfile).await()

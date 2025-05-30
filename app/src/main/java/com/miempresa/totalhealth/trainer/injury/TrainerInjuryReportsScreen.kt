@@ -24,13 +24,17 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import androidx.navigation.NavHostController
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.QuerySnapshot
 import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun TrainerInjuryReportsScreen() {
+fun TrainerInjuryReportsScreen(
+    navController: NavHostController,
+    userId: String
+) {
     var reports by remember { mutableStateOf<List<InjuryReport>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -53,10 +57,12 @@ fun TrainerInjuryReportsScreen() {
                 val total = snapshot.size()
                 snapshot.documents.forEach { doc ->
                     val userId = doc.getString("userId")
-                    val area = doc.getString("affectedArea") ?: "Desconocida"
-                    val severity = doc.getString("severity") ?: "Sin gravedad"
-                    val description = doc.getString("description") ?: ""
-                    val timestamp = doc.getString("timestamp") ?: ""
+                    val area = doc.getString("zona") ?: "Desconocida"
+                    val severity = doc.getString("gravedad") ?: "Sin gravedad"
+                    val description = doc.getString("descripcion") ?: ""
+                    val fechaMillis = doc.getLong("fecha") ?: 0L
+                    val timestamp = fechaMillis.toString()
+
                     if (userId != null) {
                         db.collection("users").document(userId).get()
                             .addOnSuccessListener { userSnap ->
@@ -64,6 +70,7 @@ fun TrainerInjuryReportsScreen() {
                                 val email = userSnap.getString("email")
                                 tempReports.add(
                                     InjuryReport(
+                                        id = doc.id,
                                         userName = name ?: email ?: "Sin usuario",
                                         area = area,
                                         severity = severity,
@@ -80,6 +87,7 @@ fun TrainerInjuryReportsScreen() {
                             .addOnFailureListener {
                                 tempReports.add(
                                     InjuryReport(
+                                        id = doc.id,
                                         userName = "Sin usuario",
                                         area = area,
                                         severity = severity,
@@ -97,6 +105,7 @@ fun TrainerInjuryReportsScreen() {
                         val userName = doc.getString("userName") ?: doc.getString("userEmail") ?: "Sin usuario"
                         tempReports.add(
                             InjuryReport(
+                                id = doc.id,
                                 userName = userName,
                                 area = area,
                                 severity = severity,
@@ -212,6 +221,8 @@ fun InjuryReportCardPro(report: InjuryReport) {
     val severityTextColor = if (report.severity.lowercase().contains("grave")) Color(0xFFFF4C4C) else gold
     val severityIconColor = severityTextColor
 
+    val showConfirmDialog = androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+
     // Formateo bonito de fecha si viene en formato epoch/string larga
     val dateText = remember(report.timestamp) {
         if (report.timestamp.length > 8 && report.timestamp.all { it.isDigit() }) {
@@ -284,24 +295,37 @@ fun InjuryReportCardPro(report: InjuryReport) {
                     fontWeight = FontWeight.Medium
                 )
             }
-            // Botón de eliminar
             Spacer(Modifier.height(16.dp))
+
             Button(
-                onClick = {
-                    val db = FirebaseFirestore.getInstance()
-                    db.collection("injury_reports")
-                        .whereEqualTo("timestamp", report.timestamp)
-                        .get()
-                        .addOnSuccessListener { snapshot ->
-                            for (doc in snapshot.documents) {
-                                doc.reference.delete()
-                            }
-                        }
-                },
+                onClick = { showConfirmDialog.value = true },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB00020)),
                 modifier = Modifier.align(Alignment.End)
             ) {
                 Text("Eliminar", color = Color.White)
+            }
+
+            if (showConfirmDialog.value) {
+                AlertDialog(
+                    onDismissRequest = { showConfirmDialog.value = false },
+                    title = { Text("Confirmar eliminación") },
+                    text = { Text("¿Estás seguro de que deseas eliminar este reporte de lesión?") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            val db = FirebaseFirestore.getInstance()
+                            db.collection("injury_reports").document(report.id)
+                                .delete()
+                            showConfirmDialog.value = false
+                        }) {
+                            Text("Eliminar", color = Color.Red)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showConfirmDialog.value = false }) {
+                            Text("Cancelar")
+                        }
+                    }
+                )
             }
         }
     }
@@ -309,6 +333,7 @@ fun InjuryReportCardPro(report: InjuryReport) {
 
 // Modelo de datos simple para lesiones (ajusta según tus campos en Firestore)
 data class InjuryReport(
+    val id: String,
     val userName: String,
     val area: String,
     val severity: String,
