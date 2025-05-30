@@ -122,7 +122,9 @@ fun SubEmotionScreen(
                                         )
                                         db.collection("emotions").add(data).addOnSuccessListener {
                                             Toast.makeText(context, "Subemoción: $sub guardada", Toast.LENGTH_SHORT).show()
-                                            navController.popBackStack()
+                                            navController.navigate("home_user") {
+                                                popUpTo("emotionreport") { inclusive = true }
+                                            }
                                         }.addOnFailureListener {
                                             Toast.makeText(context, "Error al guardar", Toast.LENGTH_SHORT).show()
                                         }

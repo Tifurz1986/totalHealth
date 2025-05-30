@@ -426,7 +426,9 @@ fun TrainerUserDetailScreen(
                         text = if (userId.isNullOrBlank()) "No se ha seleccionado un usuario." else "Cargando datos del usuario...",
                         color = Color.LightGray,
                         fontWeight = FontWeight.Medium,
-                        modifier = Modifier.align(Alignment.Center).padding(16.dp),
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(16.dp),
                         textAlign = TextAlign.Center
                     )
                 }

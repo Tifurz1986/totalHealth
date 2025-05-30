@@ -54,6 +54,7 @@ import com.miempresa.totalhealth.ui.SubEmotionScreen
 // --- FIN DE IMPORTACIÓN ---
 
 import com.miempresa.totalhealth.trainer.injury.TrainerInjuryReportsScreen
+import com.miempresa.totalhealth.ui.screens.EmotionReportEntryScreen
 
 object AppRoutes {
     const val LOGIN = "login"
@@ -321,6 +322,11 @@ fun AppNavigation() {
                 appointmentsViewModel = appointmentsViewModel,
                 navController = navController
             )
+        }
+
+        // Pantalla de registro de reporte emocional
+        composable("emotion_report_entry_screen") {
+            EmotionReportEntryScreen(navController)
         }
 
 

@@ -2,6 +2,12 @@ package com.miempresa.totalhealth.auth
 
 import android.util.Log
 import android.widget.Toast
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -52,36 +58,46 @@ fun LoginScreen(
     val colorVerdePrincipal = Color(0xFF00897B)
     val colorVerdeOscuroDegradado = Color(0xFF004D40)
 
-    // Llamada automática a loginUser() si el estado es Idle, con credenciales de prueba.
-    LaunchedEffect(Unit) {
-        if (authState is AuthAndRoleUiState.Idle) {
-            authViewModel.onEmailChange("entrenador")
-            authViewModel.onPasswordChange("123456")
-            authViewModel.loginUser()
-        }
-    }
 
     LaunchedEffect(key1 = authState) {
         Log.d("LoginScreen", "authState changed: $authState")
         when (val state = authState) {
             is AuthAndRoleUiState.Authenticated -> {
-                // La navegación a la pantalla principal (home_user o home_admin)
-                // ahora es manejada por el LaunchedEffect en AppNavigation (App.kt).
+                // Nueva lógica robusta de navegación tras login
+                val currentUser = FirebaseAuth.getInstance().currentUser
+                if (currentUser != null) {
+                    CoroutineScope(Dispatchers.Main).launch {
+                        try {
+                            val db = FirebaseFirestore.getInstance()
+                            val document = db.collection("users").document(currentUser.uid).get().await()
+                            val shouldTrack = document.getBoolean("trackEmotions") == true
+                            if (shouldTrack) {
+                                navController.navigate("emotion_report_entry_screen") {
+                                    popUpTo("login") { inclusive = true }
+                                }
+                            } else {
+                                navController.navigate("home_user") {
+                                    popUpTo("login") { inclusive = true }
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e("LoginScreen", "Error fetching trackEmotions", e)
+                            // fallback en caso de fallo
+                            navController.navigate("home_user") {
+                                popUpTo("login") { inclusive = true }
+                            }
+                        }
+                    }
+                }
                 Log.d("LoginScreen", "AuthAndRoleUiState.Authenticated detected in LoginScreen. AppNavigation should handle navigation.")
                 Toast.makeText(context, "Inicio de sesión exitoso. Redirigiendo...", Toast.LENGTH_SHORT).show()
-                // No es necesario llamar a authViewModel.resetState() aquí,
-                // ya que el estado Authenticated debe ser visible para AppNavigation.
-                // El estado se cambiará a Idle solo al hacer logout.
             }
             is AuthAndRoleUiState.Error -> {
                 Log.e("LoginScreen", "AuthAndRoleUiState.Error: ${state.message}")
                 Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
-                // authViewModel.resetState() // El ViewModel ahora resetea el error al cambiar el texto,
-                // o se puede llamar explícitamente si se desea un botón de "Reintentar" o similar.
             }
             is AuthAndRoleUiState.AuthLoading, is AuthAndRoleUiState.RoleLoading -> {
                 Log.d("LoginScreen", "State is Loading (Auth or Role).")
-                // El CircularProgressIndicator en el botón ya maneja la UI de carga.
             }
             is AuthAndRoleUiState.Idle -> {
                 Log.d("LoginScreen", "State is Idle.")
