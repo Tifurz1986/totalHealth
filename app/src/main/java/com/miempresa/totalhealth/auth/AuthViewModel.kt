@@ -234,7 +234,8 @@ class AuthViewModel : ViewModel() {
                         surname = userProfileData.surname ?: "",
                         sex = userProfileData.sex ?: "",
                         activityLevel = userProfileData.activityLevel ?: "",
-                        healthGoals = userProfileData.healthGoals ?: ""
+                        healthGoals = userProfileData.healthGoals ?: "",
+                        trackEmotions = userProfileData.trackEmotions
                     )
 
                     val roleString = userProfileData?.role ?: "USER"

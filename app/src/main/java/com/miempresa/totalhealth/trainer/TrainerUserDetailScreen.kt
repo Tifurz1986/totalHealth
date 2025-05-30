@@ -232,7 +232,7 @@ fun TrainerUserDetailScreen(
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 18.dp, vertical = 12.dp),
+                                    .padding(vertical = 16.dp),
                                 shape = RoundedCornerShape(28.dp),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 14.dp),
                                 colors = CardDefaults.cardColors(
@@ -276,7 +276,7 @@ fun TrainerUserDetailScreen(
                                         onClick = { navController.navigate("user_food_report_history/${user.uid}") },
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(vertical = 2.dp),
+                                            .padding(horizontal = 4.dp, vertical = 6.dp),
                                         icon = Icons.Filled.RestaurantMenu,
                                         contentDescription = "Reportes de comida del usuario"
                                     )
@@ -285,7 +285,7 @@ fun TrainerUserDetailScreen(
                                         onClick = { navController.navigate("user_improvement_journal_history/${user.uid}") },
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(vertical = 2.dp),
+                                            .padding(horizontal = 4.dp, vertical = 6.dp),
                                         icon = Icons.Filled.HistoryEdu,
                                         contentDescription = "Diario de mejoras del usuario"
                                     )
@@ -294,7 +294,7 @@ fun TrainerUserDetailScreen(
                                         onClick = { navController.navigate("user_daily_log_history/${user.uid}") },
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(vertical = 2.dp),
+                                            .padding(horizontal = 4.dp, vertical = 6.dp),
                                         icon = Icons.Filled.Summarize,
                                         contentDescription = "Reportes diarios del usuario"
                                     )
@@ -315,6 +315,7 @@ fun TrainerUserDetailScreen(
 
                                     // Gráfico
                                     EmotionBarChart(userId = user.uid)
+                                    Spacer(modifier = Modifier.height(16.dp))
                                 }
                             }
 
@@ -323,7 +324,7 @@ fun TrainerUserDetailScreen(
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 4.dp),
+                                    .padding(vertical = 16.dp),
                                 shape = RoundedCornerShape(18.dp),
                                 border = BorderStroke(1.dp, PremiumGold.copy(alpha = 0.35f)),
                                 colors = CardDefaults.cardColors(containerColor = Color(0xFF181818).copy(alpha = 0.93f)),
@@ -333,7 +334,7 @@ fun TrainerUserDetailScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 18.dp, vertical = 8.dp)
+                                        .padding(horizontal = 16.dp, vertical = 20.dp)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Filled.AccountCircle,
@@ -374,6 +375,7 @@ fun TrainerUserDetailScreen(
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB00020)),
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .padding(top = 10.dp)
                             ) {
                                 Text("Eliminar usuario", color = Color.White)
                             }
@@ -559,8 +561,8 @@ fun EmotionBarChart(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(220.dp)
-                .padding(horizontal = 18.dp, vertical = 12.dp)
+                .height(240.dp)
+                .padding(horizontal = 8.dp, vertical = 16.dp)
         )
     }
 }
