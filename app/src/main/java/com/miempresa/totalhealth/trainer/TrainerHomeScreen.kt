@@ -140,30 +140,65 @@ fun TrainerHomeScreen(
             )
         },
         bottomBar = {
-            NavigationBar(containerColor = CardBackgroundColor) {
+            NavigationBar(
+                containerColor = DeepBlackColor,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp))
+                    .shadow(12.dp)
+                    .padding(bottom = 2.dp)
+            ) {
+                val currentRoute = navController.currentDestination?.route
+
+                // INICIO
                 NavigationBarItem(
-                    selected = true,
-                    onClick = { /* TODO: Navegar a Home */ },
-                    icon = { Icon(Icons.Filled.Home, contentDescription = "Inicio") },
-                    label = { Text("Inicio") }
+                    selected = currentRoute == "trainer_home",
+                    onClick = {
+                        navController.navigate("trainer_home") {
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    icon = {
+                        Icon(
+                            Icons.Filled.Home,
+                            contentDescription = "Inicio",
+                            modifier = Modifier.size(30.dp),
+                            tint = if (currentRoute == "trainer_home") GoldColor else Color.LightGray
+                        )
+                    },
+                    label = {
+                        Text(
+                            "Inicio",
+                            color = if (currentRoute == "trainer_home") GoldColor else Color.LightGray,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 )
+
+                // LESIONADOS
                 NavigationBarItem(
-                    selected = false,
-                    onClick = { /* TODO: Navegar a Citas */ },
-                    icon = { Icon(Icons.Filled.CalendarMonth, contentDescription = "Citas") },
-                    label = { Text("Citas") }
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = { navController.navigate("injury_reports") },
-                    icon = { Icon(Icons.Filled.Assessment, contentDescription = "Lesionados") },
-                    label = { Text("Lesionados") }
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = { /* TODO: Navegar a Chat */ },
-                    icon = { Icon(Icons.Filled.Chat, contentDescription = "Chat") },
-                    label = { Text("Chat") }
+                    selected = currentRoute == "trainer_injury_reports",
+                    onClick = {
+                        navController.navigate("trainer_injury_reports") {
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    icon = {
+                        Icon(
+                            Icons.Filled.Assessment,
+                            contentDescription = "Lesionados",
+                            modifier = Modifier.size(30.dp),
+                            tint = if (currentRoute == "trainer_injury_reports") GoldColor else Color.LightGray
+                        )
+                    },
+                    label = {
+                        Text(
+                            "Lesionados",
+                            color = if (currentRoute == "trainer_injury_reports") GoldColor else Color.LightGray,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 )
             }
         }

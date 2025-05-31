@@ -10,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -24,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.miempresa.totalhealth.auth.AuthViewModel
@@ -86,10 +88,26 @@ fun DailyLogScreen(
     var selectedDate by remember { mutableStateOf(dailyLogViewModel.getTodayDate()) }
     var foodEntries by remember { mutableStateOf(listOf(FoodEntry())) }
     var mood by remember { mutableStateOf("") }
-    var moodIntensity by remember { mutableStateOf(0) } // 0: no seleccionado, 1-5: estrellas
+    // Estado para la ruleta emocional (nuevo)
+    // mood seguirá siendo el valor seleccionado por la ruleta
+    // Elimina moodIntensity (ya no se usa)
+    // Estado para estrellas de calidad de sueño
+    var sleepQualityStars by remember { mutableStateOf(0) } // 0: no seleccionado, 1-5: estrellas
+    // Estado para estrellas de intensidad de actividad física
+    var activityIntensityStars by remember { mutableStateOf(0) } // 0: no seleccionado, 1-5: estrellas
     var journalEntry by remember { mutableStateOf("") }
     var sleepTimeToBedString by remember { mutableStateOf("") }
     var sleepTimeWokeUpString by remember { mutableStateOf("") }
+
+    // Estados para mostrar el TimePickerDialog en la sección de Sueño
+    var showTimePickerToBed by remember { mutableStateOf(false) }
+    var showTimePickerWokeUp by remember { mutableStateOf(false) }
+    // Guardar la hora seleccionada (Pair<Int, Int>? para hora y minuto)
+    var sleepToBedHour by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    var sleepWokeUpHour by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+
+    // Función para formatear hora:minuto
+    fun formatHourMinute(hour: Int, minute: Int): String = "%02d:%02d".format(hour, minute)
     var sleepQuality by remember { mutableStateOf("") }
     var activityEntries by remember { mutableStateOf(listOf(ActivityEntry())) }
     var waterIntakeString by remember { mutableStateOf("") }
@@ -116,7 +134,6 @@ fun DailyLogScreen(
                     // Actualizar los estados locales con los datos cargados
                     foodEntries = if (log.foodEntries.isNotEmpty()) log.foodEntries else listOf(FoodEntry())
                     mood = log.emotionEntry?.mood ?: ""
-                    moodIntensity = log.emotionEntry?.moodIntensity ?: 0
                     journalEntry = log.emotionEntry?.journalEntry ?: ""
                     sleepTimeToBedString = log.sleepEntry?.timeToBed?.let { timeFormat.format(it) } ?: ""
                     sleepTimeWokeUpString = log.sleepEntry?.timeWokeUp?.let { timeFormat.format(it) } ?: ""
@@ -128,7 +145,6 @@ fun DailyLogScreen(
                     // Resetear campos si no hay log para la fecha (nuevo registro)
                     foodEntries = listOf(FoodEntry())
                     mood = ""
-                    moodIntensity = 0
                     journalEntry = ""
                     sleepTimeToBedString = ""
                     sleepTimeWokeUpString = ""
@@ -248,28 +264,29 @@ fun DailyLogScreen(
 
             // Sección Estado de Ánimo y Diario
             SectionTitle("Estado de Ánimo y Diario")
-            OutlinedTextField(
-                value = mood,
-                onValueChange = { mood = it },
-                label = { Text("¿Cómo te sientes? (Ej: Feliz, Estresado)") },
-                leadingIcon = { Icon(Icons.Filled.SentimentSatisfied, "Mood") },
-                modifier = Modifier.fillMaxWidth(),
-                colors = textFieldColors
-            )
-
             Text(
-                text = "Nivel de Ánimo:",
+                text = "¿Cómo te sientes hoy? (1 = Muy mal, 5 = Excelente)",
                 color = Color.White.copy(alpha = 0.9f),
                 style = MaterialTheme.typography.labelLarge,
-                modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+                modifier = Modifier.padding(bottom = 8.dp)
             )
-            InteractiveStarRatingInput(
-                currentRating = moodIntensity,
-                onRatingChange = { moodIntensity = it },
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-                starSize = 40.dp
-            )
-
+            Row(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                for (i in 1..5) {
+                    Icon(
+                        imageVector = Icons.Filled.Star,
+                        contentDescription = "Estado de ánimo $i",
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clickable { mood = i.toString() },
+                        tint = if (i <= (mood.toIntOrNull() ?: 0)) Color(0xFFFFD600) else Color.LightGray
+                    )
+                }
+            }
             OutlinedTextField(
                 value = journalEntry,
                 onValueChange = { journalEntry = it },
@@ -287,9 +304,113 @@ fun DailyLogScreen(
 
             // Sección Sueño
             SectionTitle("Sueño")
-            OutlinedTextField(value = sleepTimeToBedString, onValueChange = { sleepTimeToBedString = it }, label = { Text("Hora de acostarse (HH:mm)") }, leadingIcon = { Icon(Icons.Filled.Bedtime, "Bedtime") }, modifier = Modifier.fillMaxWidth(), colors = textFieldColors, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-            OutlinedTextField(value = sleepTimeWokeUpString, onValueChange = { sleepTimeWokeUpString = it }, label = { Text("Hora de levantarse (HH:mm)") }, leadingIcon = { Icon(Icons.Filled.WbSunny, "Wake up") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = textFieldColors, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-            OutlinedTextField(value = sleepQuality, onValueChange = { sleepQuality = it }, label = { Text("Calidad del sueño (Ej: Buena, Regular)") }, leadingIcon = { Icon(Icons.Filled.Star, "Quality") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = textFieldColors)
+
+            // Hora de acostarse (TimePicker)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showTimePickerToBed = true }
+                    .background(Color(0xFF263238), RoundedCornerShape(8.dp))
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Filled.Bedtime, contentDescription = "Bedtime", tint = Color.White.copy(alpha = 0.8f))
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = "Hora de acostarse: ${sleepTimeToBedString.takeIf { it.isNotEmpty() } ?: "--:--"}",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+            if (showTimePickerToBed) {
+                val context = LocalContext.current
+                AndroidView(factory = {
+                    android.widget.FrameLayout(it).apply {
+                        post {
+                            android.app.TimePickerDialog(
+                                context,
+                                { _, hour, minute ->
+                                    sleepTimeToBedString = formatHourMinute(hour, minute)
+                                    sleepToBedHour = hour to minute
+                                    showTimePickerToBed = false
+                                },
+                                sleepToBedHour?.first ?: 22,
+                                sleepToBedHour?.second ?: 0,
+                                true
+                            ).apply {
+                                setOnDismissListener { showTimePickerToBed = false }
+                            }.show()
+                        }
+                    }
+                })
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Hora de levantarse (TimePicker)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showTimePickerWokeUp = true }
+                    .background(Color(0xFF263238), RoundedCornerShape(8.dp))
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Filled.WbSunny, contentDescription = "Wake up", tint = Color.White.copy(alpha = 0.8f))
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = "Hora de levantarse: ${sleepTimeWokeUpString.takeIf { it.isNotEmpty() } ?: "--:--"}",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+            if (showTimePickerWokeUp) {
+                val context = LocalContext.current
+                AndroidView(factory = {
+                    android.widget.FrameLayout(it).apply {
+                        post {
+                            android.app.TimePickerDialog(
+                                context,
+                                { _, hour, minute ->
+                                    sleepTimeWokeUpString = formatHourMinute(hour, minute)
+                                    sleepWokeUpHour = hour to minute
+                                    showTimePickerWokeUp = false
+                                },
+                                sleepWokeUpHour?.first ?: 7,
+                                sleepWokeUpHour?.second ?: 0,
+                                true
+                            ).apply {
+                                setOnDismissListener { showTimePickerWokeUp = false }
+                            }.show()
+                        }
+                    }
+                })
+            }
+
+            // Sustituir campo de texto de calidad de sueño por estrellas
+            Text(
+                text = "Calidad del sueño:",
+                color = Color.White.copy(alpha = 0.9f),
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
+            )
+            Row(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                for (i in 1..5) {
+                    Icon(
+                        imageVector = Icons.Filled.Star,
+                        contentDescription = "Estrella $i",
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clickable { sleepQualityStars = i },
+                        tint = if (i <= sleepQualityStars) Color(0xFFFFD600) else Color.LightGray
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(16.dp))
 
 
@@ -317,6 +438,30 @@ fun DailyLogScreen(
                     showRemoveButton = activityEntries.size > 1 || (activityEntries.size == 1 && (activityEntry.type.isNotBlank() || activityEntry.durationMinutes != null || activityEntry.intensity.isNotBlank())),
                     textFieldColors = textFieldColors
                 )
+                // Intensidad de actividad física con estrellas (después de cada bloque)
+                Text(
+                    text = "Intensidad de actividad física:",
+                    color = Color.White.copy(alpha = 0.9f),
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                )
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    for (i in 1..5) {
+                        Icon(
+                            imageVector = Icons.Filled.Star,
+                            contentDescription = "Estrella intensidad $i",
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clickable { activityIntensityStars = i },
+                            tint = if (i <= activityIntensityStars) Color(0xFFFFD600) else Color.LightGray
+                        )
+                    }
+                }
             }
             Button(
                 onClick = { activityEntries = activityEntries + ActivityEntry() },
@@ -385,19 +530,20 @@ fun DailyLogScreen(
                         return@Button
                     }
 
-                    val emotionEntryToSave = if (mood.isNotBlank() || journalEntry.isNotBlank() || moodIntensity > 0) {
+                    val emotionEntryToSave = if (mood.isNotBlank() || journalEntry.isNotBlank()) {
                         EmotionEntry(
                             mood = mood,
-                            moodIntensity = if (moodIntensity == 0) null else moodIntensity,
+                            moodIntensity = null, // Ya no se usa el nivel de estrellas
                             journalEntry = journalEntry
                         )
                     } else null
 
-                    val sleepEntryToSave = if (dateToBed != null || dateWokeUp != null || sleepQuality.isNotBlank()) {
+                    // Guardar calidad del sueño como número de estrellas (convertir a texto si es necesario)
+                    val sleepEntryToSave = if (dateToBed != null || dateWokeUp != null || sleepQualityStars > 0) {
                         SleepEntry(
                             timeToBed = dateToBed,
                             timeWokeUp = dateWokeUp,
-                            sleepQuality = sleepQuality
+                            sleepQuality = if (sleepQualityStars > 0) sleepQualityStars.toString() else ""
                         )
                     } else null
 
@@ -494,7 +640,7 @@ fun ActivityEntryItem(
         .padding(bottom = 8.dp)) {
         OutlinedTextField(value = activityEntry.type, onValueChange = onTypeChange, label = { Text("Tipo de Actividad (Ej: Correr)") }, leadingIcon = { Icon(Icons.Filled.FitnessCenter, "Activity Type") }, modifier = Modifier.fillMaxWidth(), colors = textFieldColors)
         OutlinedTextField(value = activityEntry.durationMinutes?.toString() ?: "", onValueChange = onDurationChange, label = { Text("Duración (minutos)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), leadingIcon = { Icon(Icons.Filled.Timer, "Duration") }, modifier = Modifier.fillMaxWidth().padding(top = 4.dp), colors = textFieldColors)
-        OutlinedTextField(value = activityEntry.intensity, onValueChange = onIntensityChange, label = { Text("Intensidad (Ej: Ligera, Moderada)") }, leadingIcon = { Icon(Icons.Filled.Speed, "Intensity") }, modifier = Modifier.fillMaxWidth().padding(top = 4.dp), colors = textFieldColors)
+        // Eliminado el campo de intensidad por texto
         if (showRemoveButton) {
             TextButton(onClick = onRemove, modifier = Modifier.align(Alignment.End)) {
                 Icon(Icons.Filled.RemoveCircleOutline, contentDescription = "Quitar Actividad", tint = MaterialTheme.colorScheme.error)

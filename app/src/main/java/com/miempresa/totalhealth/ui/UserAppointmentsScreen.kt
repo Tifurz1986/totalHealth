@@ -90,9 +90,11 @@ fun UserAppointmentsScreen(
                     items(upcoming.sortedBy { it.first }) { (fecha, cita) ->
                         AppointmentCard(
                             icon = Icons.Default.Schedule,
-                            iconColor = Color(0xFFFFD700), // dorado
+                            iconColor = Color(0xFF3A3A3A), // gris oscuro para mejor contraste
                             fecha = fecha,
-                            notes = cita.notes
+                            notes = cita.notes,
+                            isPast = false,
+                            containerColor = Color(0xFFE0E0E0) // color claro neutro para fondo
                         )
                     }
                 }
@@ -118,10 +120,11 @@ fun UserAppointmentsScreen(
                     items(past.sortedByDescending { it.first }) { (fecha, cita) ->
                         AppointmentCard(
                             icon = Icons.Default.CheckCircle,
-                            iconColor = Color(0xFF4CAF50), // verde
+                            iconColor = Color(0xFF2E7D32), // verde más oscuro para mejor contraste
                             fecha = fecha,
                             notes = cita.notes,
-                            isPast = true
+                            isPast = true,
+                            containerColor = Color(0xFFD0F0C0) // fondo verde claro muy suave
                         )
                     }
                 }
@@ -136,20 +139,23 @@ fun AppointmentCard(
     iconColor: Color,
     fecha: LocalDateTime,
     notes: String?,
-    isPast: Boolean = false
+    isPast: Boolean = false,
+    containerColor: Color = if (isPast) Color(0xFFF8F8F8) else Color(0xFFF5F5DC)
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            .padding(vertical = 6.dp, horizontal = 12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isPast) Color(0xFFEEEEEE) else Color(0xFFFFF9C4)
-        )
+            containerColor = containerColor
+        ),
+        shape = MaterialTheme.shapes.medium
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(12.dp)
+            modifier = Modifier
+                .padding(16.dp)
         ) {
             Icon(
                 imageVector = icon,
@@ -157,14 +163,15 @@ fun AppointmentCard(
                 tint = iconColor,
                 modifier = Modifier.size(32.dp)
             )
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(16.dp))
             Column {
                 Text(
-                    text = fecha.format(DateTimeFormatter.ofPattern("EEEE d MMMM, HH:mm")),
-                    fontWeight = FontWeight.Bold
+                    text = fecha.format(DateTimeFormatter.ofPattern("EEEE d MMMM, HH:mm", java.util.Locale.getDefault())),
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
                 )
                 if (!notes.isNullOrBlank()) {
-                    Spacer(Modifier.height(2.dp))
+                    Spacer(Modifier.height(4.dp))
                     Text(
                         text = notes,
                         style = MaterialTheme.typography.bodyMedium,

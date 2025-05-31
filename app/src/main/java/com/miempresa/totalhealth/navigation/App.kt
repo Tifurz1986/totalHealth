@@ -62,6 +62,7 @@ object AppRoutes {
     const val HOME_USER = "home_user"
     const val HOME_ADMIN = "home_admin"
     const val HOME_TRAINER = "home_trainer"
+    const val TRAINER_HOME = "trainer_home"
     const val TRAINER_USER_DETAIL = "trainer_user_detail/{userId}"
     const val RECORD_USER_PROGRESS = "record_user_progress/{userId}"
     const val FOOD_REPORT = "food_report"
@@ -202,6 +203,9 @@ fun AppNavigation() {
         composable(AppRoutes.HOME_TRAINER) {
             TrainerHomeScreen(navController = navController, authViewModel = authViewModel)
         }
+        composable(AppRoutes.TRAINER_HOME) {
+            TrainerHomeScreen(navController = navController, authViewModel = authViewModel)
+        }
 
         // Calendario premium del entrenador
         composable("trainer_calendar") {
@@ -305,6 +309,12 @@ fun AppNavigation() {
             } else {
                 Text("Error: User ID no encontrado para reportes de lesiones.")
             }
+        }
+        // --- NAVEGACIÓN PARA REPORTES DE LESIONES GENERALES DEL ENTRENADOR ---
+        composable(
+            route = "trainer_injury_reports"
+        ) {
+            TrainerInjuryReportsScreen(navController = navController, userId = "")
         }
         // --- FIN DE NAVEGACIÓN ---
 

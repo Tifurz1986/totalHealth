@@ -23,6 +23,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.shape.CircleShape
@@ -309,34 +310,7 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(18.dp))
 
 
-                // AnimatedFeatureCard y espacio para pill cards
-                AnimatedFeatureCard(
-                    title = "Mi Progreso",
-                    description = "Visualiza tu avance físico y mental.",
-                    icon = Icons.Filled.Assessment,
-                    onClick = { navController.navigate("progress_screen") },
-                    colorGlow = colorVerdeSecundario,
-                    animationDelay = 0
-                )
-                Spacer(modifier = Modifier.height(14.dp))
-                AnimatedFeatureCard(
-                    title = "Reporte de Comida",
-                    description = "Lleva un control de tu alimentación.",
-                    icon = Icons.Filled.RestaurantMenu,
-                    onClick = { navController.navigate("food_report") },
-                    colorGlow = colorVerdeSecundario,
-                    animationDelay = 100
-                )
-                Spacer(modifier = Modifier.height(14.dp))
-                AnimatedFeatureCard(
-                    title = "Diario de Mejoras",
-                    description = "Reflexiona sobre tus logros y metas.",
-                    icon = Icons.Filled.EditNote,
-                    onClick = { navController.navigate("improvement_journal_screen") },
-                    colorGlow = colorVerdeSecundario,
-                    animationDelay = 200
-                )
-                Spacer(modifier = Modifier.height(16.dp))
+                // AnimatedFeatureCard y espacio para pill cards (orden: Próxima cita, Mi Progreso, Diario de Mejoras, Reporte de Comida)
                 AnimatedFeatureCard(
                     title = "Próxima cita",
                     description = when {
@@ -350,9 +324,36 @@ fun HomeScreen(
                     icon = Icons.Filled.CalendarMonth,
                     onClick = { navController.navigate("appointments_screen") },
                     colorGlow = colorVerdeSecundario,
-                    animationDelay = 300
+                    animationDelay = 0
                 )
                 Spacer(modifier = Modifier.height(14.dp))
+                AnimatedFeatureCard(
+                    title = "Mi Progreso",
+                    description = "Visualiza tu avance físico y mental.",
+                    icon = Icons.Filled.Assessment,
+                    onClick = { navController.navigate("progress_screen") },
+                    colorGlow = colorVerdeSecundario,
+                    animationDelay = 100
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+                AnimatedFeatureCard(
+                    title = "Diario de Mejoras",
+                    description = "Reflexiona sobre tus logros y metas.",
+                    icon = Icons.Filled.EditNote,
+                    onClick = { navController.navigate("improvement_journal_screen") },
+                    colorGlow = colorVerdeSecundario,
+                    animationDelay = 200
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+                AnimatedFeatureCard(
+                    title = "Reporte de Comida",
+                    description = "Lleva un control de tu alimentación.",
+                    icon = Icons.Filled.RestaurantMenu,
+                    onClick = { navController.navigate("food_report") },
+                    colorGlow = colorVerdeSecundario,
+                    animationDelay = 300
+                )
+                Spacer(modifier = Modifier.height(16.dp))
                 // InfoFeatureCards destacados - Frase Semanal y Libro del Mes como mini cards
                 Row(
                     Modifier
@@ -815,7 +816,8 @@ fun BottomBarHome(
     Surface(
         tonalElevation = 8.dp,
         shadowElevation = 12.dp,
-        color = fondoOscuro
+        color = fondoOscuro,
+        modifier = Modifier.navigationBarsPadding()
     ) {
         Row(
             Modifier
