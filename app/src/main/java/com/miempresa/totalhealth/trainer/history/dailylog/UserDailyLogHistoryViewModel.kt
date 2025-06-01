@@ -83,6 +83,31 @@ class UserDailyLogHistoryViewModel(private val userId: String) : ViewModel() {
         }
     }
 
+    /**
+     * Borra un registro diario (DailyLog) dado su ID de documento en Firestore.
+     * @param dailyLogId El ID del documento DailyLog a borrar.
+     * @param onResult Callback que recibe true si el borrado fue exitoso, false si falló.
+     */
+    fun deleteDailyLog(dailyLogId: String, onResult: (Boolean) -> Unit = {}) {
+        db.collection(collectionName).document(dailyLogId)
+            .delete()
+            .addOnSuccessListener { onResult(true) }
+            .addOnFailureListener { onResult(false) }
+    }
+
+    /**
+     * Actualiza las notas (u otros campos que necesites) de un registro diario.
+     * @param dailyLogId El ID del documento DailyLog a editar.
+     * @param newNotes El texto actualizado para el campo de notas.
+     * @param onResult Callback que recibe true si la actualización fue exitosa, false si falló.
+     */
+    fun updateDailyLog(dailyLogId: String, newNotes: String, onResult: (Boolean) -> Unit = {}) {
+        db.collection(collectionName).document(dailyLogId)
+            .update("notes", newNotes)
+            .addOnSuccessListener { onResult(true) }
+            .addOnFailureListener { onResult(false) }
+    }
+
     @Suppress("UNCHECKED_CAST")
     class Factory(private val userId: String) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {

@@ -5,16 +5,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.clickable
 import java.time.format.TextStyle
 import java.util.Locale
-
 import androidx.compose.ui.unit.sp
 import com.miempresa.totalhealth.trainer.model.Appointment
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,6 +36,11 @@ fun TrainerAppointmentsCalendarSection(
     val today = remember { LocalDate.now() }
     var selectedDate by remember { mutableStateOf(today) }
     val appointments by appointmentsViewModel.appointments.collectAsState()
+
+    var showEditDialog by remember { mutableStateOf(false) }
+    var selectedAppointment by remember { mutableStateOf<Appointment?>(null) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var citaAEliminar by remember { mutableStateOf<Appointment?>(null) }
 
     // Traer citas del entrenador para el día seleccionado
     LaunchedEffect(trainerId, selectedDate) {
@@ -96,10 +100,92 @@ fun TrainerAppointmentsCalendarSection(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 items(citasDelDia.sortedBy { it.timestamp }) { cita ->
-                    TrainerAppointmentCard(cita)
+                    TrainerAppointmentCard(
+                        cita = cita,
+                        onEdit = {
+                            selectedAppointment = cita
+                            showEditDialog = true
+                        },
+                        onDelete = {
+                            citaAEliminar = cita
+                            showDeleteDialog = true
+                        }
+                    )
                 }
             }
         }
+    }
+
+    if (showEditDialog && selectedAppointment != null) {
+        val cita = selectedAppointment!!
+        var newNotes by remember { mutableStateOf(cita.notes ?: "") }
+        var newDateTime by remember { mutableStateOf(LocalDateTime.parse(cita.timestamp)) }
+
+        AlertDialog(
+            onDismissRequest = { showEditDialog = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    appointmentsViewModel.updateAppointment(
+                        cita.id,
+                        newDateTime.toString(),
+                        newNotes
+                    ) {
+                        showEditDialog = false
+                    }
+                }) {
+                    Text("Guardar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditDialog = false }) {
+                    Text("Cancelar")
+                }
+            },
+            title = { Text("Editar Cita") },
+            text = {
+                Column {
+                    Text("Fecha y hora (formato: yyyy-MM-ddTHH:mm):")
+                    OutlinedTextField(
+                        value = newDateTime.toString(),
+                        onValueChange = {
+                            try {
+                                newDateTime = LocalDateTime.parse(it)
+                            } catch (_: Exception) {}
+                        }
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text("Notas:")
+                    OutlinedTextField(
+                        value = newNotes,
+                        onValueChange = { newNotes = it },
+                        singleLine = false
+                    )
+                }
+            }
+        )
+    }
+
+    if (showDeleteDialog && citaAEliminar != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("¿Eliminar cita?") },
+            text = { Text("¿Seguro que quieres eliminar esta cita? Esta acción no se puede deshacer.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    appointmentsViewModel.deleteAppointment(citaAEliminar!!.id) {
+                        appointmentsViewModel.fetchAppointmentsForTrainerDay(trainerId, selectedDate)
+                    }
+                    showDeleteDialog = false
+                    citaAEliminar = null
+                }) { Text("Sí, eliminar") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showDeleteDialog = false
+                    citaAEliminar = null
+                }) { Text("Cancelar") }
+            }
+        )
     }
 }
 
@@ -148,7 +234,11 @@ fun HorizontalCalendar(
 }
 
 @Composable
-fun TrainerAppointmentCard(cita: Appointment) {
+fun TrainerAppointmentCard(
+    cita: Appointment,
+    onEdit: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null
+) {
     val fecha = try {
         LocalDateTime.parse(cita.timestamp)
     } catch (_: Exception) {
@@ -213,6 +303,21 @@ fun TrainerAppointmentCard(cita: Appointment) {
                         color = Color.White
                     )
                 }
+            }
+            Spacer(Modifier.weight(1f))
+            IconButton(onClick = { onEdit?.invoke() }) {
+                Icon(
+                    imageVector = Icons.Filled.Edit,
+                    contentDescription = "Editar cita",
+                    tint = Color(0xFF1976D2)
+                )
+            }
+            IconButton(onClick = { onDelete?.invoke() }) {
+                Icon(
+                    imageVector = Icons.Filled.Delete,
+                    contentDescription = "Eliminar cita",
+                    tint = Color.Red
+                )
             }
         }
     }

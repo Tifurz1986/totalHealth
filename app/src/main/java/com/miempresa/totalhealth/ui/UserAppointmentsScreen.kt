@@ -1,4 +1,8 @@
 package com.miempresa.totalhealth.ui
+import com.miempresa.totalhealth.trainer.model.Appointment
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
+
 
 import androidx.navigation.NavHostController
 import com.miempresa.totalhealth.trainer.calendar.AppointmentsViewModel
@@ -34,6 +38,10 @@ fun UserAppointmentsScreen(
 ) {
     val appointments by appointmentsViewModel.appointments.collectAsState()
     val now = LocalDateTime.now()
+
+    // Dialog state for editing
+    var showEditDialog by remember { mutableStateOf(false) }
+    var selectedAppointment by remember { mutableStateOf<Appointment?>(null) }
 
     LaunchedEffect(userId) {
         appointmentsViewModel.fetchAppointmentsForUser(userId)
@@ -94,7 +102,14 @@ fun UserAppointmentsScreen(
                             fecha = fecha,
                             notes = cita.notes,
                             isPast = false,
-                            containerColor = Color(0xFFE0E0E0) // color claro neutro para fondo
+                            containerColor = Color(0xFFE0E0E0), // color claro neutro para fondo
+                            onDelete = {
+                                appointmentsViewModel.deleteAppointment(cita.id, onResult = {})
+                            },
+                            onEdit = {
+                                selectedAppointment = cita
+                                showEditDialog = true
+                            }
                         )
                     }
                 }
@@ -124,12 +139,61 @@ fun UserAppointmentsScreen(
                             fecha = fecha,
                             notes = cita.notes,
                             isPast = true,
-                            containerColor = Color(0xFFD0F0C0) // fondo verde claro muy suave
+                            containerColor = Color(0xFFD0F0C0)
                         )
                     }
                 }
             }
         }
+    }
+
+    // Edit Dialog
+    if (showEditDialog && selectedAppointment != null) {
+        val cita = selectedAppointment!!
+        var newNotes by remember { mutableStateOf(cita.notes ?: "") }
+        var newDateTime by remember { mutableStateOf(LocalDateTime.parse(cita.timestamp)) }
+
+        AlertDialog(
+            onDismissRequest = { showEditDialog = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    appointmentsViewModel.updateAppointment(
+                        appointmentId = cita.id,
+                        newTimestamp = newDateTime.toString(),
+                        newNotes = newNotes,
+                        onResult = { showEditDialog = false }
+                    )
+                }) {
+                    Text("Guardar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditDialog = false }) {
+                    Text("Cancelar")
+                }
+            },
+            title = { Text("Editar Cita") },
+            text = {
+                Column {
+                    Text("Fecha y hora (formato: yyyy-MM-ddTHH:mm):")
+                    OutlinedTextField(
+                        value = newDateTime.toString(),
+                        onValueChange = {
+                            try {
+                                newDateTime = LocalDateTime.parse(it)
+                            } catch (_: Exception) {}
+                        }
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text("Notas:")
+                    OutlinedTextField(
+                        value = newNotes,
+                        onValueChange = { newNotes = it },
+                        singleLine = false
+                    )
+                }
+            }
+        )
     }
 }
 
@@ -140,7 +204,9 @@ fun AppointmentCard(
     fecha: LocalDateTime,
     notes: String?,
     isPast: Boolean = false,
-    containerColor: Color = if (isPast) Color(0xFFF8F8F8) else Color(0xFFF5F5DC)
+    containerColor: Color = if (isPast) Color(0xFFF8F8F8) else Color(0xFFF5F5DC),
+    onDelete: (() -> Unit)? = null,
+    onEdit: (() -> Unit)? = null
 ) {
     Card(
         modifier = Modifier
@@ -177,6 +243,15 @@ fun AppointmentCard(
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.DarkGray
                     )
+                }
+            }
+            if (!isPast) {
+                Spacer(Modifier.weight(1f))
+                IconButton(onClick = { onEdit?.invoke() }) {
+                    Icon(Icons.Default.Edit, contentDescription = "Editar cita", tint = Color(0xFF1976D2))
+                }
+                IconButton(onClick = { onDelete?.invoke() }) {
+                    Icon(Icons.Default.Delete, contentDescription = "Eliminar cita", tint = Color.Red)
                 }
             }
         }

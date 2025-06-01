@@ -139,6 +139,8 @@ fun ChatScreen(
             modifier = Modifier
                 .padding(8.dp)
                 .fillMaxWidth()
+                .navigationBarsPadding()
+                .imePadding()
                 .background(Color(0xFF1E293B), RoundedCornerShape(30.dp))
                 .padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically

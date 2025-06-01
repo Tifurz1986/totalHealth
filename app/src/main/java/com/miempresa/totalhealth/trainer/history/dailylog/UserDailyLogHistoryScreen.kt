@@ -1,16 +1,30 @@
 package com.miempresa.totalhealth.trainer.history.dailylog
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items // Asegúrate que esta importación sea la correcta
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -33,9 +47,20 @@ fun UserDailyLogHistoryScreen(
     // Utiliza el Factory para pasar el userId al ViewModel
     viewModel: UserDailyLogHistoryViewModel = viewModel(factory = UserDailyLogHistoryViewModel.Factory(userId))
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var logAEliminar by remember { mutableStateOf<DailyLog?>(null) }
+    var showEditDialog by remember { mutableStateOf(false) }
+    var logAEditar by remember { mutableStateOf<DailyLog?>(null) }
+    var editNotas by remember { mutableStateOf("") }
+
     val dailyLogs by viewModel.dailyLogs.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+
+    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -107,45 +132,48 @@ fun UserDailyLogHistoryScreen(
                             val descriptionParts = mutableListOf<String>()
 
                             log.waterIntakeLiters?.let {
-                                descriptionParts.add("Agua: ${it}L")
-                            }
-                            if (log.notes.isNotBlank()) {
-                                descriptionParts.add("Notas Generales: ${log.notes}")
+                                descriptionParts.add("💧 Agua: ${it}L")
                             }
 
-                            // Información de Comidas
-                            if (log.foodEntries.isNotEmpty()) {
-                                descriptionParts.add("Comidas: ${log.foodEntries.size} registradas")
-                                // Opcional: detallar más sobre las comidas
-                                // log.foodEntries.take(1).forEach { food ->
-                                //     descriptionParts.add("  - ${food.mealType}: ${food.description.take(20)}...")
-                                // }
+                            descriptionParts.add("📝 Notas Generales: ${log.notes.take(60).plus("...")}")
+
+                            val comidas = log.foodEntries.mapNotNull { entry ->
+                                if (entry.mealType.trim().isNotEmpty() || entry.description.trim().isNotEmpty()) {
+                                    "${entry.mealType}: ${entry.description.take(30)}..."
+                                } else null
+                            }
+                            if (comidas.isNotEmpty()) {
+                                descriptionParts.add("🍽 Comida: ${comidas.take(2).joinToString(", ")}${if (comidas.size > 2) " +${comidas.size - 2} más" else ""}")
+                            } else {
+                                descriptionParts.add("🍽 Comida: Sin registrar")
                             }
 
-                            // Información de Actividades
-                            if (log.activityEntries.isNotEmpty()) {
-                                descriptionParts.add("Actividades: ${log.activityEntries.size} registradas")
-                                // Opcional: detallar más sobre las actividades
-                                // log.activityEntries.take(1).forEach { activity ->
-                                // descriptionParts.add("  - ${activity.type} (${activity.durationMinutes} min)")
-                                // }
+                            val actividades = log.activityEntries.mapNotNull { entry ->
+                                if (entry.type.trim().isNotEmpty()) {
+                                    val intensidad = if (entry.intensity.trim().isNotEmpty()) " (${entry.intensity})" else ""
+                                    val duracion = entry.durationMinutes?.let { " - ${it}min" } ?: ""
+                                    "${entry.type}$intensidad$duracion"
+                                } else null
+                            }
+                            if (actividades.isNotEmpty()) {
+                                descriptionParts.add("🏃 Actividad: ${actividades.take(2).joinToString(", ")}${if (actividades.size > 2) " +${actividades.size - 2} más" else ""}")
+                            } else {
+                                descriptionParts.add("🏃 Actividad: Sin registrar")
                             }
 
-                            // Información de Emoción
                             log.emotionEntry?.let { emotion ->
-                                var emotionDesc = "Emoción: ${emotion.mood}"
+                                var emotionDesc = "🧠 Emoción: ${emotion.mood}"
                                 emotion.moodIntensity?.let { intensity ->
                                     emotionDesc += " (Nivel: $intensity)"
                                 }
                                 if (emotion.journalEntry.isNotBlank()){
-                                    emotionDesc += "\n  Diario: ${emotion.journalEntry.take(30)}..."
+                                    emotionDesc += "\n  Diario: ${emotion.journalEntry.take(60)}..."
                                 }
                                 descriptionParts.add(emotionDesc)
                             }
 
-                            // Información de Sueño
                             log.sleepEntry?.let { sleep ->
-                                var sleepDesc = "Sueño: Calidad ${sleep.sleepQuality}"
+                                var sleepDesc = "😴 Sueño: Calidad ${sleep.sleepQuality}"
                                 if (sleep.timeToBed != null && sleep.timeWokeUp != null) {
                                     val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
                                     sleepDesc += " (${sdf.format(sleep.timeToBed!!)} - ${sdf.format(sleep.timeWokeUp!!)})"
@@ -154,18 +182,136 @@ fun UserDailyLogHistoryScreen(
                             }
 
                             val cardDescription = descriptionParts.joinToString(separator = "\n").ifEmpty { "Sin detalles adicionales." }
-                            val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
-                            PremiumHistoryCard( // Asegúrate que PremiumHistoryCard acepte estos parámetros
-                                date = log.date.time, // PremiumHistoryCard espera un Long para la fecha
-                                title = "Registro del ${dateFormat.format(log.date)}",
-                                description = cardDescription
-                                // Puedes añadir más parámetros a PremiumHistoryCard si es necesario
-                            )
+                            var visible by remember { mutableStateOf(true) }
+                            AnimatedVisibility(
+                                visible = visible,
+                                enter = fadeIn(),
+                                exit = fadeOut()
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 8.dp)
+                                ) {
+                                    PremiumHistoryCard(
+                                        date = log.date.time,
+                                        title = "🗓 Registro del ${dateFormat.format(log.date)}",
+                                        description = cardDescription,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(end = 60.dp) // Deja espacio a la derecha para los botones flotantes
+                                    )
+                                    // Botones de acción flotantes, superpuestos en la esquina inferior derecha
+                                    Column(
+                                        modifier = Modifier
+                                            .align(Alignment.BottomEnd)
+                                            .padding(8.dp)
+                                    ) {
+                                        IconButton(
+                                            onClick = {
+                                                logAEditar = log
+                                                editNotas = log.notes ?: ""
+                                                showEditDialog = true
+                                            },
+                                            modifier = Modifier
+                                                .size(44.dp)
+                                                .background(PremiumGold.copy(alpha = 0.2f), CircleShape)
+                                                .padding(4.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Filled.Edit,
+                                                contentDescription = "Editar registro",
+                                                tint = PremiumGold,
+                                                modifier = Modifier.size(28.dp)
+                                            )
+                                        }
+                                        Spacer(Modifier.height(10.dp))
+                                        IconButton(
+                                            onClick = {
+                                                logAEliminar = log
+                                                showDeleteDialog = true
+                                            },
+                                            modifier = Modifier
+                                                .size(44.dp)
+                                                .background(Color.Red.copy(alpha = 0.18f), CircleShape)
+                                                .padding(4.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Filled.Delete,
+                                                contentDescription = "Eliminar registro",
+                                                tint = Color.Red,
+                                                modifier = Modifier.size(28.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
+            if (showDeleteDialog && logAEliminar != null) {
+                AlertDialog(
+                    onDismissRequest = { showDeleteDialog = false },
+                    title = { Text("¿Eliminar registro?") },
+                    text = { Text("¿Seguro que quieres eliminar este registro diario? Esta acción no se puede deshacer.") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            viewModel.deleteDailyLog(logAEliminar!!.id) {
+                                showDeleteDialog = false
+                                logAEliminar = null
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar("Registro eliminado")
+                                }
+                            }
+                        }) { Text("Sí, eliminar") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = {
+                            showDeleteDialog = false
+                            logAEliminar = null
+                        }) { Text("Cancelar") }
+                    }
+                )
+            }
+            if (showEditDialog && logAEditar != null) {
+                AlertDialog(
+                    onDismissRequest = { showEditDialog = false },
+                    title = { Text("Editar registro diario") },
+                    text = {
+                        Column {
+                            Text("Notas:")
+                            OutlinedTextField(
+                                value = editNotas,
+                                onValueChange = { editNotas = it },
+                                singleLine = false
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            viewModel.updateDailyLog(
+                                logAEditar!!.id,
+                                editNotas
+                            ) {
+                                showEditDialog = false
+                                logAEditar = null
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar("Registro actualizado")
+                                }
+                            }
+                        }) { Text("Guardar") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = {
+                            showEditDialog = false
+                            logAEditar = null
+                        }) { Text("Cancelar") }
+                    }
+                )
+            }
+            SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
         }
     }
 }

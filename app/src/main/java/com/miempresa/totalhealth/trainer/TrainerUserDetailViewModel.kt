@@ -29,60 +29,32 @@ class TrainerUserDetailViewModel : ViewModel() {
     private val _uiState = MutableStateFlow<UserProfileDetailUiState>(UserProfileDetailUiState.Idle)
     val uiState: StateFlow<UserProfileDetailUiState> = _uiState.asStateFlow()
 
-    fun fetchUserProfile(userId: String?) {
-        if (userId.isNullOrBlank()) {
-            Log.w(TAG, "fetchUserProfile called with null or blank userId.")
-            _uiState.value = UserProfileDetailUiState.Error("ID de usuario inválido.")
+    fun fetchUserProfile(documentId: String?) {
+        if (documentId.isNullOrBlank()) {
+            Log.w(TAG, "fetchUserProfile called with null or blank documentId.")
+            _uiState.value = UserProfileDetailUiState.Error("ID del documento inválido.")
             return
         }
 
         _uiState.value = UserProfileDetailUiState.Loading
-        Log.d(TAG, "Fetching profile by field query for UID: $userId")
 
         viewModelScope.launch {
             try {
-                val querySnapshot = db.collection("users")
-                    .whereEqualTo("uid", userId) // <<--- CAMBIO PRINCIPAL: Buscar por el campo "uid"
-                    .limit(1) // Esperamos como máximo un resultado
-                    .get()
-                    .await()
-
-                if (!querySnapshot.isEmpty) {
-                    val documentSnapshot = querySnapshot.documents[0] // Tomamos el primer documento encontrado
-                    Log.d(TAG, "Document found with ID: ${documentSnapshot.id} for UID query: $userId")
-
-                    // Asegurarse de que el documento no sea nulo y convertirlo
-                    var userProfile = documentSnapshot.toObject(UserProfile::class.java)
-
-                    // Es buena práctica asegurar valores no nulos para campos String si la data class los espera así,
-                    // aunque UserProfile.kt ya tiene valores por defecto para Strings.
-                    // Esto es más relevante si tuvieras String? y quisieras "" por defecto en la UI.
-                    userProfile = userProfile?.copy(
-                        name = userProfile.name ?: "",
-                        surname = userProfile.surname ?: "",
-                        email = userProfile.email ?: "", // Aunque email no debería ser null
-                        sex = userProfile.sex ?: "",
-                        activityLevel = userProfile.activityLevel ?: "",
-                        healthGoals = userProfile.healthGoals ?: "",
-                        role = userProfile.role.ifEmpty { "USER" } // Asegurar un rol por defecto
-                        // No es necesario tocar profilePictureUrl, age, height, weight, createdAt, uid aquí,
-                        // ya que UserProfile.kt maneja sus valores por defecto/nulabilidad.
-                    )
-
-                    if (userProfile != null) {
-                        Log.d(TAG, "Successfully fetched and converted profile. Emitting Success state: $userProfile")
-                        _uiState.value = UserProfileDetailUiState.Success(userProfile)
-                    } else {
-                        Log.e(TAG, "Failed to convert Firestore document to UserProfile for UID: $userId (document ID: ${documentSnapshot.id})")
-                        _uiState.value = UserProfileDetailUiState.Error("Error al procesar datos del perfil para UID: $userId")
+                val doc = db.collection("users").document(documentId).get().await()
+                if (doc.exists()) {
+                    val userProfile = doc.toObject(UserProfile::class.java)
+                    userProfile?.let {
+                        _uiState.value = UserProfileDetailUiState.Success(it)
+                        Log.d(TAG, "Usuario cargado correctamente: $documentId")
+                    } ?: run {
+                        _uiState.value = UserProfileDetailUiState.Error("Error al convertir el usuario.")
                     }
                 } else {
-                    Log.w(TAG, "No profile document found with 'uid' field matching: $userId")
-                    _uiState.value = UserProfileDetailUiState.Error("Perfil de usuario no encontrado con UID: $userId")
+                    _uiState.value = UserProfileDetailUiState.Error("No se encontró el documento.")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "EXCEPTION while fetching profile by field query for UID $userId: ${e.message}", e)
-                _uiState.value = UserProfileDetailUiState.Error("Error al cargar el perfil: ${e.localizedMessage}")
+                _uiState.value = UserProfileDetailUiState.Error("Error: ${e.message}")
+                Log.e(TAG, "Error al cargar usuario por ID: ${e.message}")
             }
         }
     }

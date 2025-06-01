@@ -43,6 +43,10 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.*
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.miempresa.totalhealth.auth.AuthViewModel
 import com.miempresa.totalhealth.auth.UserProfile
 import com.miempresa.totalhealth.trainer.calendar.AppointmentsViewModel
@@ -104,12 +109,35 @@ fun TrainerHomeScreen(
     val userListUiState by trainerViewModel.userListUiState.collectAsState()
     val dashboardMetricsState by trainerViewModel.dashboardMetricsUiState.collectAsState()
 
+    // Forzar recarga cada vez que se entra a la pantalla
+    LaunchedEffect(Unit) {
+        trainerViewModel.fetchAllUsers()
+    }
+
     val currentUserEmail = authViewModel.getCurrentUser()?.email
     val trainerName = currentUserEmail?.substringBefore("@")?.replaceFirstChar { it.uppercase() } ?: "Entrenador"
 
     val blackToGoldGradientBrush = Brush.verticalGradient(
         colors = listOf(DeepBlackColor, DarkCharcoalColor, GoldColor)
     )
+
+    // Refrescar la lista de usuarios automáticamente al volver a la pantalla
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                trainerViewModel.fetchAllUsers()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    LaunchedEffect(navBackStackEntry) {}
+    val currentRoute = navBackStackEntry?.destination?.route
 
     Scaffold(
         topBar = {
@@ -147,15 +175,15 @@ fun TrainerHomeScreen(
                     .shadow(12.dp)
                     .padding(bottom = 2.dp)
             ) {
-                val currentRoute = navController.currentDestination?.route
-
                 // INICIO
                 NavigationBarItem(
                     selected = currentRoute == "trainer_home",
                     onClick = {
-                        navController.navigate("trainer_home") {
-                            launchSingleTop = true
-                            restoreState = true
+                        if (currentRoute != "trainer_home") {
+                            navController.navigate("trainer_home") {
+                                launchSingleTop = true
+                                restoreState = true
+                            }
                         }
                     },
                     icon = {
@@ -179,9 +207,11 @@ fun TrainerHomeScreen(
                 NavigationBarItem(
                     selected = currentRoute == "trainer_injury_reports",
                     onClick = {
-                        navController.navigate("trainer_injury_reports") {
-                            launchSingleTop = true
-                            restoreState = true
+                        if (currentRoute != "trainer_injury_reports") {
+                            navController.navigate("trainer_injury_reports") {
+                                launchSingleTop = true
+                                restoreState = true
+                            }
                         }
                     },
                     icon = {
@@ -255,7 +285,9 @@ fun TrainerHomeScreen(
                         )
                     }
                     is UserListUiState.Success -> {
-                        val users = state.users.filter { it.uid.isNotBlank() }.distinctBy { it.uid }
+                        val users = state.users
+                .filter { it.profile.uid.isNotBlank() && it.documentId.isNotBlank() && it.existsInFirestore }
+                            .distinctBy { it.profile.uid }
                         if (users.isEmpty()) {
                             item {
                                 Text(
@@ -269,8 +301,8 @@ fun TrainerHomeScreen(
                                 )
                             }
                         } else {
-                            items(users) { user ->
-                                UserItemPro(user = user, navController = navController)
+                            items(users) { userWithId ->
+                                UserItemPro(user = userWithId.profile, navController = navController)
                                 Spacer(modifier = Modifier.height(16.dp))
                             }
                         }

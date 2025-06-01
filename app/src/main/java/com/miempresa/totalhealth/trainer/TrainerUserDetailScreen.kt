@@ -51,20 +51,20 @@ import kotlinx.coroutines.launch
 fun TrainerUserDetailScreen(
     navController: NavController,
     viewModel: TrainerUserDetailViewModel = viewModel(),
-    userId: String? = null,
+    documentId: String? = null,
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var hasInjuries by remember { mutableStateOf(false) }
 
-    LaunchedEffect(userId) {
-        if (!userId.isNullOrBlank()) {
-            viewModel.fetchUserProfile(userId)
+    LaunchedEffect(documentId) {
+        if (!documentId.isNullOrBlank()) {
+            viewModel.fetchUserProfile(documentId)
             // Consulta Firestore para ver si el usuario tiene lesiones
             FirebaseFirestore.getInstance()
                 .collection("injury_reports")
-                .whereEqualTo("userId", userId)
+                .whereEqualTo("userId", documentId)
                 .get()
                 .addOnSuccessListener { snapshot ->
                     hasInjuries = snapshot != null && !snapshot.isEmpty
@@ -387,11 +387,19 @@ fun TrainerUserDetailScreen(
                                     text = { Text("Esta acción eliminará al usuario y todos sus datos. ¿Estás seguro?") },
                                     confirmButton = {
                                         TextButton(onClick = {
-                                            userId?.let {
-                                                eliminarUsuarioCompleto(it)
-                                                navController.popBackStack()
+                                            documentId?.let { id ->
+                                                eliminarUsuarioCompleto(
+                                                    id,
+                                                    onSuccess = {
+                                                        showDeleteConfirm = false
+                                                        navController.popBackStack()
+                                                    },
+                                                    onError = { errorMsg ->
+                                                        showDeleteConfirm = false
+                                                        // Opcional: muestra un Snackbar o Toast con errorMsg aquí si lo deseas
+                                                    }
+                                                )
                                             }
-                                            showDeleteConfirm = false
                                         }) {
                                             Text("Eliminar", color = Color.Red)
                                         }
@@ -414,16 +422,25 @@ fun TrainerUserDetailScreen(
                 }
                 is UserProfileDetailUiState.Error -> {
                     val errorMsg = currentState.message
+                    val nav = navController
+                    // Mostrar mensaje de usuario no encontrado y volver atrás tras una breve pausa
+                    LaunchedEffect(Unit) {
+                        kotlinx.coroutines.delay(1200)
+                        nav.popBackStack()
+                    }
                     Text(
-                        text = "Error: $errorMsg",
+                        text = "Usuario no encontrado o eliminado.",
                         color = Color.Red,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.align(Alignment.Center)
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(16.dp),
+                        textAlign = TextAlign.Center
                     )
                 }
                 is UserProfileDetailUiState.Idle -> {
                     Text(
-                        text = if (userId.isNullOrBlank()) "No se ha seleccionado un usuario." else "Cargando datos del usuario...",
+                        text = if (documentId.isNullOrBlank()) "No se ha seleccionado un usuario." else "Cargando datos del usuario...",
                         color = Color.LightGray,
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier
@@ -568,45 +585,41 @@ fun EmotionBarChart(
         )
     }
 }
-fun eliminarUsuarioCompleto(userId: String) {
+fun eliminarUsuarioCompleto(
+    documentId: String,
+    onSuccess: () -> Unit,
+    onError: (String) -> Unit
+) {
     val db = FirebaseFirestore.getInstance()
 
-    println("🔥 Empezando eliminación del usuario: $userId")
-
-    db.collection("users").document(userId).collection("daily_log")
+    db.collection("users").document(documentId).collection("daily_log")
         .get().addOnSuccessListener { dailyLogs ->
-            println("✅ daily_log obtenidos: ${dailyLogs.size()}")
-            for (doc in dailyLogs) {
-                doc.reference.delete()
-            }
+            for (doc in dailyLogs) { doc.reference.delete() }
 
-            db.collection("users").document(userId).collection("emotion_entries")
+            db.collection("users").document(documentId).collection("emotion_entries")
                 .get().addOnSuccessListener { emotions ->
-                    println("✅ emotion_entries obtenidos: ${emotions.size()}")
-                    for (doc in emotions) {
-                        doc.reference.delete()
-                    }
+                    for (doc in emotions) { doc.reference.delete() }
 
                     db.collection("injury_reports")
-                        .whereEqualTo("userId", userId)
+                        .whereEqualTo("userId", documentId)
                         .get().addOnSuccessListener { injuries ->
-                            println("✅ injury_reports obtenidos: ${injuries.size()}")
-                            for (doc in injuries) {
-                                doc.reference.delete()
-                            }
+                            for (doc in injuries) { doc.reference.delete() }
 
-                            println("🧨 Eliminando documento del usuario")
-                            db.collection("users").document(userId).delete()
+                            db.collection("users").document(documentId).delete()
                                 .addOnSuccessListener {
-                                    println("🎉 Usuario eliminado con éxito")
+                                    onSuccess()
                                 }
                                 .addOnFailureListener {
-                                    println("❌ Falló al eliminar usuario: ${it.message}")
+                                    onError(it.message ?: "Error al eliminar usuario")
                                 }
+                        }.addOnFailureListener { e ->
+                            onError(e.message ?: "Error al eliminar lesiones")
                         }
+                }.addOnFailureListener { e ->
+                    onError(e.message ?: "Error al eliminar emociones")
                 }
         }
         .addOnFailureListener { e ->
-            println("❌ Fallo al obtener daily_log: ${e.message}")
+            onError(e.message ?: "Error al eliminar daily_log")
         }
 }

@@ -15,9 +15,16 @@ import kotlinx.coroutines.tasks.await
 import java.util.Calendar // Necesario para fechas
 import java.util.Date // Necesario para el tipo de dato en Firestore si usas Timestamp
 
+// Modelo que asocia el documentId de Firestore con el perfil de usuario
+data class UserProfileWithId(
+    val documentId: String,
+    val profile: UserProfile,
+    val existsInFirestore: Boolean = true
+)
+
 sealed class UserListUiState {
     object Loading : UserListUiState()
-    data class Success(val users: List<UserProfile>) : UserListUiState()
+    data class Success(val users: List<UserProfileWithId>) : UserListUiState()
     data class Error(val message: String) : UserListUiState()
 }
 
@@ -59,7 +66,14 @@ class TrainerViewModel : ViewModel() {
                     .await()
 
                 val users = result.documents.mapNotNull { document ->
-                    document.toObject(UserProfile::class.java)
+                    val profile = document.toObject(UserProfile::class.java)
+                    profile?.let {
+                        UserProfileWithId(
+                            documentId = document.id,
+                            profile = it,
+                            existsInFirestore = document.exists()
+                        )
+                    }
                 }
                 _userListUiState.value = UserListUiState.Success(users)
                 Log.d("TrainerViewModel", "Fetched ${users.size} users.")
@@ -67,6 +81,20 @@ class TrainerViewModel : ViewModel() {
             } catch (e: Exception) {
                 Log.e("TrainerViewModel", "Error fetching users", e)
                 _userListUiState.value = UserListUiState.Error("Error al cargar usuarios: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    // Elimina un usuario por su documentId en Firestore y refresca la lista
+    fun deleteUserByDocumentId(documentId: String, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                db.collection("users").document(documentId).delete().await()
+                fetchAllUsers() // Refresca la lista tras borrar
+                onSuccess()
+            } catch (e: Exception) {
+                Log.e("TrainerViewModel", "Error deleting user by docId", e)
+                onError(e.localizedMessage ?: "Error desconocido")
             }
         }
     }

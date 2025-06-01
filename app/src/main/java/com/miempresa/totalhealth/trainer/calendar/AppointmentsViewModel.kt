@@ -105,4 +105,26 @@ class AppointmentsViewModel : ViewModel() {
             .addOnSuccessListener { onSuccess() }
             .addOnFailureListener { exception -> onFailure(exception) }
     }
+
+    fun deleteAppointment(appointmentId: String, onResult: (Boolean) -> Unit = {}) {
+        db.collection("appointments").document(appointmentId)
+            .delete()
+            .addOnSuccessListener { onResult(true) }
+            .addOnFailureListener { onResult(false) }
+    }
+
+    fun updateAppointment(
+        appointmentId: String,
+        newTimestamp: String,
+        newNotes: String,
+        onResult: (Boolean) -> Unit = {}
+    ) {
+        db.collection("appointments").document(appointmentId)
+            .update(mapOf(
+                "timestamp" to newTimestamp,
+                "notes" to newNotes
+            ))
+            .addOnSuccessListener { onResult(true) }
+            .addOnFailureListener { onResult(false) }
+    }
 }

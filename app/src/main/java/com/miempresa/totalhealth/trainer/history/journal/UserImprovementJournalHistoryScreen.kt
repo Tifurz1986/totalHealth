@@ -108,7 +108,8 @@ fun UserImprovementJournalHistoryScreen(
                         contentPadding = PaddingValues(all = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        items(journalEntries, key = { entry: ImprovementJournalEntry -> entry.id }) { entry: ImprovementJournalEntry ->
+                        val visibleEntries = journalEntries.filter { it.entryDate != null && (it.title.isNotBlank() || it.category?.isNotBlank() == true || it.content.isNotBlank()) }
+                        items(visibleEntries, key = { entry: ImprovementJournalEntry -> entry.id }) { entry: ImprovementJournalEntry ->
                             // Determinar el título para la card
                             val cardTitle = if (entry.title.isNotBlank()) {
                                 entry.title

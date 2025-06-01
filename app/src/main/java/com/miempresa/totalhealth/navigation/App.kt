@@ -85,7 +85,7 @@ object AppRoutes {
     fun userInjuryReports(userId: String) = "user_injury_reports/$userId"
     // --- FIN DE NUEVA RUTA ---
 
-    fun trainerUserDetail(userId: String) = "trainer_user_detail/$userId"
+    fun trainerUserDetail(documentId: String) = "trainer_user_detail/$documentId"
     fun recordUserProgress(userId: String) = "record_user_progress/$userId"
     fun addEditImprovementEntry(entryId: String? = null) =
         if (entryId != null) "add_edit_improvement_entry_screen/$entryId"
@@ -220,10 +220,10 @@ fun AppNavigation() {
             route = AppRoutes.TRAINER_USER_DETAIL,
             arguments = listOf(navArgument("userId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val userId = backStackEntry.arguments?.getString("userId")
+            val documentId = backStackEntry.arguments?.getString("userId")
             TrainerUserDetailScreen(
                 navController = navController,
-                userId = userId
+                documentId = documentId
             )
         }
 
