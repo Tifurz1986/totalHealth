@@ -6,6 +6,9 @@ import com.miempresa.totalhealth.trainer.UserListUiState
 
 import android.annotation.SuppressLint
 import android.util.Log
+import androidx.compose.foundation.lazy.LazyListState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -103,6 +106,8 @@ fun LazyListScope.UserListPro(users: List<UserProfile>, navController: NavContro
 fun TrainerHomeScreen(
     navController: NavController,
     authViewModel: AuthViewModel,
+    listState: LazyListState,
+    coroutineScope: CoroutineScope,
     trainerViewModel: TrainerViewModel = viewModel(),
     appointmentsViewModel: AppointmentsViewModel = viewModel()
 ) {
@@ -177,12 +182,17 @@ fun TrainerHomeScreen(
             ) {
                 // INICIO
                 NavigationBarItem(
-                    selected = currentRoute == "trainer_home",
+                    selected = false, // <-- Nunca resaltado
                     onClick = {
                         if (currentRoute != "trainer_home") {
                             navController.navigate("trainer_home") {
                                 launchSingleTop = true
                                 restoreState = true
+                                popUpTo("trainer_home") { inclusive = true }
+                            }
+                        } else {
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(0)
                             }
                         }
                     },
@@ -191,13 +201,13 @@ fun TrainerHomeScreen(
                             Icons.Filled.Home,
                             contentDescription = "Inicio",
                             modifier = Modifier.size(30.dp),
-                            tint = if (currentRoute == "trainer_home") GoldColor else Color.LightGray
+                            tint = Color.LightGray // <-- SIEMPRE gris claro
                         )
                     },
                     label = {
                         Text(
                             "Inicio",
-                            color = if (currentRoute == "trainer_home") GoldColor else Color.LightGray,
+                            color = Color.LightGray, // <-- SIEMPRE gris claro
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -243,7 +253,8 @@ fun TrainerHomeScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                verticalArrangement = Arrangement.spacedBy(24.dp),
+                state = listState
             ) {
                 item {
                     SectionTitle(title = "Gestión de Citas")
@@ -286,7 +297,7 @@ fun TrainerHomeScreen(
                     }
                     is UserListUiState.Success -> {
                         val users = state.users
-                .filter { it.profile.uid.isNotBlank() && it.documentId.isNotBlank() && it.existsInFirestore }
+                            .filter { it.profile.uid.isNotBlank() && it.documentId.isNotBlank() && it.existsInFirestore }
                             .distinctBy { it.profile.uid }
                         if (users.isEmpty()) {
                             item {

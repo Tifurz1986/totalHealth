@@ -35,7 +35,7 @@ class UserImprovementJournalHistoryViewModel(private val userId: String) : ViewM
         Log.d("ImprovementJournalVM", "Listening improvement_journal for user $userId")
         db.collection("users")
             .document(userId)
-            .collection("improvement_journal")
+            .collection("journal_entries")
             .orderBy("entryDate", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, e ->
                 if (e != null) {

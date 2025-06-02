@@ -73,15 +73,6 @@ fun SettingsScreen(
                 }
             )
 
-            SettingOptionItem(
-                icon = Icons.Filled.Notifications,
-                title = "Notificaciones",
-                description = "Configura tus alertas y recordatorios.",
-                onClick = {
-                    Toast.makeText(context, "Ajustes de Notificaciones (Próximamente)", Toast.LENGTH_SHORT).show()
-                }
-            )
-
             // Opción "Apariencia" eliminada
 
             SettingOptionItem(
@@ -89,7 +80,7 @@ fun SettingsScreen(
                 title = "Acerca de",
                 description = "Información sobre Total Health y versión.",
                 onClick = {
-                    Toast.makeText(context, "Pantalla Acerca de (Próximamente)", Toast.LENGTH_SHORT).show()
+                    navController.navigate("about_screen")
                 }
             )
         }

@@ -1,5 +1,8 @@
 package com.miempresa.totalhealth.navigation
 
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.rememberCoroutineScope
+
 import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +36,7 @@ import com.miempresa.totalhealth.foodreport.FoodReportScreen
 import com.miempresa.totalhealth.progress.RecordUserProgressScreen
 import com.miempresa.totalhealth.progress.ProgressScreen
 import com.miempresa.totalhealth.settings.SettingsScreen
+import com.miempresa.totalhealth.settings.AboutScreen
 import com.miempresa.totalhealth.auth.AuthAndRoleUiState
 import com.miempresa.totalhealth.auth.AuthViewModel
 import com.miempresa.totalhealth.auth.LoginScreen
@@ -105,6 +109,9 @@ fun AppNavigation() {
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+
+    val trainerHomeListState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(authUiState, currentRoute) {
         Log.d("AppNavigationEffect", "Effect triggered. AuthState: $authUiState, CurrentRoute: $currentRoute")
@@ -201,10 +208,20 @@ fun AppNavigation() {
             }
         }
         composable(AppRoutes.HOME_TRAINER) {
-            TrainerHomeScreen(navController = navController, authViewModel = authViewModel)
+            TrainerHomeScreen(
+                navController = navController,
+                authViewModel = authViewModel,
+                listState = trainerHomeListState,
+                coroutineScope = coroutineScope
+            )
         }
         composable(AppRoutes.TRAINER_HOME) {
-            TrainerHomeScreen(navController = navController, authViewModel = authViewModel)
+            TrainerHomeScreen(
+                navController = navController,
+                authViewModel = authViewModel,
+                listState = trainerHomeListState,
+                coroutineScope = coroutineScope
+            )
         }
 
         // Calendario premium del entrenador
@@ -241,6 +258,9 @@ fun AppNavigation() {
         composable(AppRoutes.FOOD_REPORT) { FoodReportScreen(navController) }
         composable(AppRoutes.PROGRESS_SCREEN) { ProgressScreen(navController) }
         composable(AppRoutes.SETTINGS_SCREEN) { SettingsScreen(navController) }
+        composable("about_screen") {
+            AboutScreen(onBack = { navController.popBackStack() })
+        }
         composable(AppRoutes.EDIT_PROFILE_SCREEN) { EditProfileScreen(navController, authViewModel) }
         composable(AppRoutes.DAILY_LOG_SCREEN) { DailyLogScreen(navController) }
 

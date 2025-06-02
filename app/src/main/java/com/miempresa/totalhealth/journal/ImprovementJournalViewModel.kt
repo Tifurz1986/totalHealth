@@ -52,6 +52,9 @@ class ImprovementJournalViewModel : ViewModel() {
     /**
      * Carga las entradas del diario para el usuario actual desde Firestore.
      * Las entradas se ordenan por fecha de entrada descendente (las más nuevas primero).
+     *
+     * Nota: Se usa la subcolección estándar y profesional "users/{userId}/journal_entries"
+     * en lugar de la antigua colección raíz "improvement_journal".
      */
     fun loadJournalEntries() {
         val currentUserId = userId
@@ -66,7 +69,7 @@ class ImprovementJournalViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val snapshot = db.collection("users").document(currentUserId)
-                    .collection("journal_entries") // Subcolección para las entradas del diario
+                    .collection("journal_entries") // Subcolección estándar para las entradas del diario
                     .orderBy("entryDate", Query.Direction.DESCENDING) // Ordenar por fecha de la entrada
                     .get()
                     .await()
@@ -91,6 +94,9 @@ class ImprovementJournalViewModel : ViewModel() {
      * @param content Contenido principal de la reflexión.
      * @param category Categoría de la entrada (opcional).
      * @param entryDate Fecha a la que se refiere la entrada.
+     *
+     * Nota: Se usa la subcolección estándar y profesional "users/{userId}/journal_entries"
+     * en lugar de la antigua colección raíz "improvement_journal".
      */
     fun addJournalEntry(title: String, content: String, category: String?, entryDate: Date) {
         val currentUserId = userId
@@ -119,7 +125,7 @@ class ImprovementJournalViewModel : ViewModel() {
                 )
 
                 db.collection("users").document(currentUserId)
-                    .collection("journal_entries")
+                    .collection("journal_entries") // Subcolección estándar para las entradas del diario
                     .add(newEntry)
                     .await()
 
