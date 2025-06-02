@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Book // Icono para entrada de diario
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -62,6 +63,8 @@ fun ImprovementJournalScreen(
     val colorVerdeOscuroDegradado = Color(0xFF004D40)
     val colorTextoClaro = Color.White.copy(alpha = 0.9f)
     val colorTextoSecundarioClaro = Color.White.copy(alpha = 0.7f)
+
+    var entryToDelete by remember { mutableStateOf<ImprovementJournalEntry?>(null) }
 
     Scaffold(
         topBar = {
@@ -115,12 +118,18 @@ fun ImprovementJournalScreen(
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             items(state.entries, key = { it.id }) { entry ->
-                                JournalEntryCard(entry = entry, onClick = {
-                                    // TODO: Navegar a la pantalla de edición con el ID de la entrada
-                                    Log.d("JournalScreen", "Entry clicked: ${entry.id} - ${entry.title}")
-                                    Toast.makeText(context, "Editar entrada (Próximamente)", Toast.LENGTH_SHORT).show()
-                                    // navController.navigate("add_edit_improvement_entry_screen/${entry.id}")
-                                })
+                                JournalEntryCard(
+                                    entry = entry,
+                                    onClick = {
+                                        navController.navigate("add_edit_improvement_entry_screen/${entry.id}")
+                                    },
+                                    onEdit = {
+                                        navController.navigate("add_edit_improvement_entry_screen/${entry.id}")
+                                    },
+                                    onDelete = {
+                                        entryToDelete = entry
+                                    }
+                                )
                             }
                         }
                     }
@@ -141,66 +150,119 @@ fun ImprovementJournalScreen(
                 }
             }
         }
+
+        if (entryToDelete != null) {
+            AlertDialog(
+                onDismissRequest = { entryToDelete = null },
+                title = { Text("Eliminar entrada") },
+                text = { Text("¿Seguro que quieres eliminar esta entrada del diario?") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        journalViewModel.deleteJournalEntry(entryToDelete!!.id)
+                        entryToDelete = null
+                    }) {
+                        Text("Eliminar", color = Color.Red)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { entryToDelete = null }) {
+                        Text("Cancelar")
+                    }
+                }
+            )
+        }
     }
 }
 
 @Composable
-fun JournalEntryCard(entry: ImprovementJournalEntry, onClick: () -> Unit) {
+fun JournalEntryCard(
+    entry: ImprovementJournalEntry,
+    onClick: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
     val dateFormatter = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
     val colorVerdePrincipal = Color(0xFF00897B)
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.08f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Filled.Book, // O un icono más específico para diario
-                    contentDescription = "Entrada de Diario",
-                    tint = colorVerdePrincipal,
-                    modifier = Modifier.size(28.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = if (entry.title.isNotBlank()) entry.title else "Entrada del ${dateFormatter.format(entry.entryDate)}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White.copy(alpha = 0.9f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+    Box {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onClick() },
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.08f)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Filled.Book, // O un icono más específico para diario
+                        contentDescription = "Entrada de Diario",
+                        tint = colorVerdePrincipal,
+                        modifier = Modifier.size(28.dp)
                     )
-                    if (entry.title.isNotBlank()) {
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = dateFormatter.format(entry.entryDate),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.7f)
+                            text = if (entry.title.isNotBlank()) entry.title else "Entrada del ${dateFormatter.format(entry.entryDate)}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White.copy(alpha = 0.9f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
+                        if (entry.title.isNotBlank()) {
+                            Text(
+                                text = dateFormatter.format(entry.entryDate),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.White.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                    Box {
+                        IconButton(onClick = { expanded = true }) {
+                            Icon(Icons.Filled.MoreVert, contentDescription = "Más opciones", tint = Color.White.copy(alpha = 0.7f))
+                        }
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Editar") },
+                                onClick = {
+                                    expanded = false
+                                    onEdit()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Borrar") },
+                                onClick = {
+                                    expanded = false
+                                    onDelete()
+                                }
+                            )
+                        }
                     }
                 }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = entry.content,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.8f),
-                maxLines = 3, // Mostrar un extracto
-                overflow = TextOverflow.Ellipsis
-            )
-            entry.category?.let { category ->
-                if (category.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Categoría: $category",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = colorVerdePrincipal.copy(alpha = 0.9f),
-                        fontWeight = FontWeight.SemiBold
-                    )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = entry.content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.8f),
+                    maxLines = 3, // Mostrar un extracto
+                    overflow = TextOverflow.Ellipsis
+                )
+                entry.category?.let { category ->
+                    if (category.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Categoría: $category",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = colorVerdePrincipal.copy(alpha = 0.9f),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
         }

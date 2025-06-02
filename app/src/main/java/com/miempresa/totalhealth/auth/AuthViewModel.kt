@@ -316,6 +316,21 @@ class AuthViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Actualiza el perfil del usuario autenticado en Firestore.
+     *
+     * @param name Nombre del usuario.
+     * @param surname Apellido del usuario.
+     * @param age Edad del usuario.
+     * @param sex Sexo del usuario.
+     * @param height Altura del usuario.
+     * @param weight Peso del usuario.
+     * @param activityLevel Nivel de actividad física.
+     * @param healthGoals Objetivos de salud.
+     * @param profilePictureUrl URL de la foto de perfil (opcional, solo se actualiza si no es null).
+     * @param onSuccess Callback de éxito.
+     * @param onError Callback en caso de error (con mensaje).
+     */
     fun updateUserProfile(
         name: String,
         surname: String,
@@ -325,6 +340,7 @@ class AuthViewModel : ViewModel() {
         weight: Double?,
         activityLevel: String,
         healthGoals: String,
+        profilePictureUrl: String? = null,
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
@@ -353,6 +369,9 @@ class AuthViewModel : ViewModel() {
                     "healthGoals" to healthGoals.trim()
                     // No se actualiza 'role', 'uid', 'email', 'createdAt' desde aquí
                 )
+                if (profilePictureUrl != null) {
+                    userProfileUpdates["profilePictureUrl"] = profilePictureUrl
+                }
 
                 db.collection("users").document(currentUser.uid)
                     .set(userProfileUpdates, SetOptions.merge())

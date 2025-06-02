@@ -153,6 +153,30 @@ class ImprovementJournalViewModel : ViewModel() {
         _journalUiState.value = JournalUiState.Idle
     }
 
-    // Aquí podrías añadir funciones para editar (updateJournalEntry) y eliminar (deleteJournalEntry)
-    // entradas del diario en el futuro.
+    // Método para eliminar profesionalmente una entrada del diario de mejoras.
+    fun deleteJournalEntry(entryId: String) {
+        val currentUserId = userId
+        if (currentUserId == null) {
+            _entryOperationUiState.value = EntryOperationUiState.Error("Usuario no autenticado para eliminar entrada.")
+            Log.w("JournalVM", "deleteJournalEntry: Usuario no autenticado.")
+            return
+        }
+        _entryOperationUiState.value = EntryOperationUiState.Loading
+        Log.d("JournalVM", "Eliminando entrada del diario $entryId para usuario $currentUserId")
+        viewModelScope.launch {
+            try {
+                db.collection("users").document(currentUserId)
+                    .collection("journal_entries")
+                    .document(entryId)
+                    .delete()
+                    .await()
+                _entryOperationUiState.value = EntryOperationUiState.Success
+                Log.d("JournalVM", "Entrada del diario eliminada exitosamente.")
+                loadJournalEntries() // Recargar lista tras eliminar
+            } catch (e: Exception) {
+                Log.e("JournalVM", "Error al eliminar entrada del diario", e)
+                _entryOperationUiState.value = EntryOperationUiState.Error("Error al eliminar la entrada: ${e.localizedMessage}")
+            }
+        }
+    }
 }
