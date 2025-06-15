@@ -106,12 +106,12 @@ fun UserFoodReportHistoryScreen(
                     ) {
                         items(foodReports, key = { report: FoodReport -> report.id }) { report: FoodReport ->
                             PremiumHistoryCard(
-                                // --- ACCESO A PROPIEDADES CORREGIDO ---
+                                // --- ACCESO A PROPIEDADES ---
                                 date = report.mealTimestamp?.time ?: 0L, // Convertir Date? a Long. Usar createdAt?.time si mealTimestamp no es el deseado.
                                 title = report.mealType.ifBlank { null }, // mealType ya estaba bien
                                 description = report.comment, // Cambiado de description a comment
                                 photoUrl = report.imageUrl // Cambiado de photoUrl a imageUrl
-                                // --- FIN DE ACCESO CORREGIDO ---
+                                // --- FIN DE ACCESO  ---
                             )
                         }
                     }

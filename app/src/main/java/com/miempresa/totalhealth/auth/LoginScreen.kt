@@ -63,33 +63,37 @@ fun LoginScreen(
         Log.d("LoginScreen", "authState changed: $authState")
         when (val state = authState) {
             is AuthAndRoleUiState.Authenticated -> {
-                // Nueva lógica robusta de navegación tras login
                 val currentUser = FirebaseAuth.getInstance().currentUser
                 if (currentUser != null) {
                     CoroutineScope(Dispatchers.Main).launch {
                         try {
                             val db = FirebaseFirestore.getInstance()
                             val document = db.collection("users").document(currentUser.uid).get().await()
-                            val shouldTrack = document.getBoolean("trackEmotions") == true
-                            if (shouldTrack) {
-                                navController.navigate("emotion_report_entry_screen") {
+                            val role = document.getString("role")
+                            Log.d("LoginScreen", "Valor de role: '$role'")
+                            if (role != null && role.trim().lowercase() == "trainer") {
+                                navController.navigate("home_trainer") {
                                     popUpTo("login") { inclusive = true }
                                 }
                             } else {
-                                navController.navigate("home_user") {
-                                    popUpTo("login") { inclusive = true }
+                                val shouldTrack = document.getBoolean("trackEmotions") == true
+                                if (shouldTrack) {
+                                    navController.navigate("emotion_report_entry_screen") {
+                                        popUpTo("login") { inclusive = true }
+                                    }
+                                } else {
+                                    navController.navigate("home_user") {
+                                        popUpTo("login") { inclusive = true }
+                                    }
                                 }
                             }
                         } catch (e: Exception) {
-                            Log.e("LoginScreen", "Error fetching trackEmotions", e)
-                            // fallback en caso de fallo
                             navController.navigate("home_user") {
                                 popUpTo("login") { inclusive = true }
                             }
                         }
                     }
                 }
-                Log.d("LoginScreen", "AuthAndRoleUiState.Authenticated detected in LoginScreen. AppNavigation should handle navigation.")
                 Toast.makeText(context, "Inicio de sesión exitoso. Redirigiendo...", Toast.LENGTH_SHORT).show()
             }
             is AuthAndRoleUiState.Error -> {

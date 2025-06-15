@@ -49,13 +49,6 @@ class ImprovementJournalViewModel : ViewModel() {
     private val userId: String?
         get() = auth.currentUser?.uid
 
-    /**
-     * Carga las entradas del diario para el usuario actual desde Firestore.
-     * Las entradas se ordenan por fecha de entrada descendente (las más nuevas primero).
-     *
-     * Nota: Se usa la subcolección estándar y profesional "users/{userId}/journal_entries"
-     * en lugar de la antigua colección raíz "improvement_journal".
-     */
     fun loadJournalEntries() {
         val currentUserId = userId
         if (currentUserId == null) {
@@ -88,16 +81,6 @@ class ImprovementJournalViewModel : ViewModel() {
         }
     }
 
-    /**
-     * Añade una nueva entrada al diario de mejoras.
-     * @param title Título de la entrada (opcional).
-     * @param content Contenido principal de la reflexión.
-     * @param category Categoría de la entrada (opcional).
-     * @param entryDate Fecha a la que se refiere la entrada.
-     *
-     * Nota: Se usa la subcolección estándar y profesional "users/{userId}/journal_entries"
-     * en lugar de la antigua colección raíz "improvement_journal".
-     */
     fun addJournalEntry(title: String, content: String, category: String?, entryDate: Date) {
         val currentUserId = userId
         if (currentUserId == null) {

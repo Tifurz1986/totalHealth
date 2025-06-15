@@ -16,7 +16,7 @@ data class UserProfile(
     val healthGoals: String = "",
     val role: String = "USER",
     val createdAt: Date? = null,
-    val trackEmotions: Boolean = false // <-- Campo nuevo, por defecto en false
+    val trackEmotions: Boolean = false // <-- Campo prueba ruleta emocional, por defecto en false
 ) {
     // Constructor sin argumentos para Firestore/serialización automática
     constructor() : this(

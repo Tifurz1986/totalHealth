@@ -68,7 +68,7 @@ fun UserDailyLogHistoryScreen(
                 title = {
                     Text(
                         "Reportes Diarios",
-                        color = PremiumGold, // Asegúrate que estos colores estén definidos en tu tema
+                        color = PremiumGold,
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -77,12 +77,12 @@ fun UserDailyLogHistoryScreen(
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
-                            tint = PremiumIconGold // Asegúrate que estos colores estén definidos
+                            tint = PremiumIconGold
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = PremiumDarkCharcoal // Asegúrate que estos colores estén definidos
+                    containerColor = PremiumDarkCharcoal
                 )
             )
         },
@@ -113,7 +113,7 @@ fun UserDailyLogHistoryScreen(
                 dailyLogs.isEmpty() && !isLoading -> {
                     Text(
                         text = "Este usuario aún no tiene registros diarios.",
-                        color = PremiumTextGold, // Asegúrate que estos colores estén definidos
+                        color = PremiumTextGold,
                         modifier = Modifier
                             .align(Alignment.Center)
                             .padding(16.dp),

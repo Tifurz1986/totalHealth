@@ -1,5 +1,4 @@
-package com.miempresa.totalhealth.auth // Sigue en el mismo paquete
-
+package com.miempresa.totalhealth.auth
 import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.State
@@ -24,14 +23,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.Date
 import java.util.UUID
-// Se importará com.miempresa.totalhealth.auth.UserProfile del archivo UserProfile.kt
+
 
 // Estados de la UI para autenticación y rol
 sealed class AuthAndRoleUiState {
     object Idle : AuthAndRoleUiState()
     object AuthLoading : AuthAndRoleUiState()
     object RoleLoading : AuthAndRoleUiState()
-    // UserProfile aquí es ahora com.miempresa.totalhealth.auth.UserProfile (del archivo externo)
     data class Authenticated(val user: FirebaseUser?, val role: UserRole, val userProfile: UserProfile?) : AuthAndRoleUiState()
     data class Error(val message: String) : AuthAndRoleUiState()
 }
@@ -44,14 +42,10 @@ enum class UserRole {
     LOADING_ROLE
 }
 
-// LA DEFINICIÓN DE UserProfile DATA CLASS SE HA ELIMINADO DE AQUÍ.
-// AHORA SE USA LA QUE ESTÁ EN auth/UserProfile.kt
-
 // Estado para la UI de la carga/actualización del perfil
 sealed class UserProfileUiState {
     object Idle : UserProfileUiState()
     object Loading : UserProfileUiState()
-    // UserProfile aquí es ahora com.miempresa.totalhealth.auth.UserProfile (del archivo externo)
     data class Success(val profile: UserProfile) : UserProfileUiState()
     data class Error(val message: String) : UserProfileUiState()
 }
@@ -173,27 +167,6 @@ class AuthViewModel : ViewModel() {
 
         if (currentEmail.isBlank() || currentPassword.isBlank()) {
             _authAndRoleUiState.value = AuthAndRoleUiState.Error("El email y la contraseña no pueden estar vacíos.")
-            return
-        }
-
-        if (currentEmail == TRAINER_EMAIL_CREDENTIAL && currentPassword == TRAINER_PASSWORD_CREDENTIAL) {
-            Log.d("AuthViewModel", "Trainer login attempt successful.")
-            // Usamos la clase UserProfile externa
-            val trainerProfile = UserProfile(
-                uid = "trainer_local_id",
-                email = currentEmail,
-                name = "Entrenador",
-                surname = "Principal",
-                role = "TRAINER",
-                createdAt = Date()
-            )
-            _authAndRoleUiState.value = AuthAndRoleUiState.Authenticated(
-                user = null,
-                role = UserRole.TRAINER,
-                userProfile = trainerProfile
-            )
-            _userProfileUiState.value = UserProfileUiState.Success(trainerProfile)
-            clearFields()
             return
         }
 

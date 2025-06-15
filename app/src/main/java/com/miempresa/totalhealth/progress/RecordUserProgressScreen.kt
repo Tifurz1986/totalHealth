@@ -40,7 +40,6 @@ import com.miempresa.totalhealth.trainer.UserProfileDetailUiState
 import com.miempresa.totalhealth.trainer.TrainerUserDetailViewModel
 import com.miempresa.totalhealth.ui.menu.theme.ProfessionalGoldPalette
 
-// Definición de UIRatingCategoryState (asegúrate de que esté aquí, fuera del Composable principal)
 data class UIRatingCategoryState(
     val categoryId: String,
     val categoryName: String,
@@ -59,7 +58,6 @@ fun RecordUserProgressScreen(
 ) {
     val context = LocalContext.current
 
-    // Cambia aquí a un degradado negro-oro PRO, sin depender del palette custom si quieres aún más "puro"
     val blackToGoldGradientBrush = Brush.verticalGradient(
         colors = listOf(
             Color(0xFF141414),
@@ -323,7 +321,7 @@ fun RecordUserProgressScreen(
     }
 }
 
-// Card visual con solo cambios de color, respeta tu lógica
+// Card visual con solo cambios de color
 @Composable
 fun RatingSectionCardPro(
     title: String,

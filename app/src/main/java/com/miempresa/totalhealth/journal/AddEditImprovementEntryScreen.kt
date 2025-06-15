@@ -1,4 +1,4 @@
-package com.miempresa.totalhealth.journal // Asegúrate que el paquete sea este
+package com.miempresa.totalhealth.journal
 
 import android.app.DatePickerDialog
 import android.util.Log // Importación añadida para Log
@@ -39,7 +39,7 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddEditImprovementEntryScreen( // Asegúrate que el nombre de la función sea este
+fun AddEditImprovementEntryScreen(
     navController: NavController,
     journalViewModel: ImprovementJournalViewModel = viewModel(),
     entryId: String? = null
@@ -58,8 +58,6 @@ fun AddEditImprovementEntryScreen( // Asegúrate que el nombre de la función se
     LaunchedEffect(entryId) {
         if (entryId != null) {
             Log.d("AddEditEntryScreen", "Modo edición para ID: $entryId (funcionalidad de carga no implementada)")
-            // Aquí llamarías a journalViewModel.loadEntryById(entryId)
-            // y luego actualizarías los 'remember' states (title, content, category, entryDate)
         }
     }
 
@@ -93,7 +91,6 @@ fun AddEditImprovementEntryScreen( // Asegúrate que el nombre de la función se
             entryDate = newDateCalendar.time
         }, year, month, day
     )
-    // datePickerDialog.datePicker.maxDate = System.currentTimeMillis()
 
     val colorNegro = Color.Black
     val colorVerdePrincipal = Color(0xFF00897B)

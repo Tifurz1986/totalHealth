@@ -19,7 +19,7 @@ import kotlinx.coroutines.tasks.await
 import java.util.Calendar
 import java.util.Date
 
-// Sealed classes ProgressUiState y CoachRatingsUiState (sin cambios)
+
 sealed class ProgressUiState {
     object Idle : ProgressUiState()
     object Loading : ProgressUiState()

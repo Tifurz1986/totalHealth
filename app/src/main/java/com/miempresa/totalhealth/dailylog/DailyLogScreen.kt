@@ -88,10 +88,6 @@ fun DailyLogScreen(
     var selectedDate by remember { mutableStateOf(dailyLogViewModel.getTodayDate()) }
     var foodEntries by remember { mutableStateOf(listOf(FoodEntry())) }
     var mood by remember { mutableStateOf("") }
-    // Estado para la ruleta emocional (nuevo)
-    // mood seguirá siendo el valor seleccionado por la ruleta
-    // Elimina moodIntensity (ya no se usa)
-    // Estado para estrellas de calidad de sueño
     var sleepQualityStars by remember { mutableStateOf(0) } // 0: no seleccionado, 1-5: estrellas
     // Estado para estrellas de intensidad de actividad física
     var activityIntensityStars by remember { mutableStateOf(0) } // 0: no seleccionado, 1-5: estrellas
@@ -115,7 +111,6 @@ fun DailyLogScreen(
 
     var isLoading by remember { mutableStateOf(false) }
 
-    // CORRECCIÓN AQUÍ: Cambiado "ylab" por "yyyy"
     val displayDateFormat = SimpleDateFormat("dd MMMM yyyy", Locale.getDefault())
     val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 

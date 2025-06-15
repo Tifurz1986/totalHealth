@@ -43,9 +43,6 @@ fun ImprovementJournalScreen(
         journalViewModel.loadJournalEntries()
     }
 
-    // Observar el estado de la operación de entrada (para refrescar después de añadir, si es necesario)
-    // Esto es más relevante en la pantalla de añadir/editar, pero lo dejamos por si se añaden
-    // operaciones directas en esta pantalla en el futuro.
     val entryOperationState by journalViewModel.entryOperationUiState.collectAsState()
     LaunchedEffect(entryOperationState) {
         if (entryOperationState is EntryOperationUiState.Success) {

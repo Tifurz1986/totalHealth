@@ -105,7 +105,7 @@ class TrainerViewModel : ViewModel() {
             try {
                 // --- 1. Total de Usuarios ---
                 val usersSnapshot = db.collection("users")
-                    // .whereEqualTo("role", "USER") // Considera filtrar por rol si es necesario
+                    // .whereEqualTo("role", "USER") // filtrar por rol si es necesario
                     .get()
                     .await()
                 val totalUsersCount = usersSnapshot.size()
@@ -131,24 +131,8 @@ class TrainerViewModel : ViewModel() {
                     .get()
                     .await()
                 val reportsTodayCount = dailyLogsTodaySnapshot.size()
-                // Podrías sumar de 'food_reports' también si cuentan como reportes diarios
-                // y tienen un campo de fecha similar.
-
-                // --- 3. Citas de Hoy ---
-                // Esto asume que tienes una colección "appointments" y un campo "appointmentDate" (Timestamp)
                 var appointmentsTodayCount = 0
-                // try {
-                //     val appointmentsSnapshot = db.collection("appointments")
-                //         .whereGreaterThanOrEqualTo("appointmentDate", todayStart)
-                //         .whereLessThanOrEqualTo("appointmentDate", todayEnd)
-                //         // .whereEqualTo("trainerId", /* ID del trainer actual si es necesario */)
-                //         .get()
-                //         .await()
-                //     appointmentsTodayCount = appointmentsSnapshot.size()
-                //     Log.d("TrainerViewModel", "Fetched ${appointmentsTodayCount} appointments for today.")
-                // } catch (e: Exception) {
-                //     Log.w("TrainerViewModel", "Could not fetch appointments, defaulting to 0. Error: ${e.message}")
-                // }
+
 
 
                 _dashboardMetricsUiState.value = DashboardMetricsUiState.Success(

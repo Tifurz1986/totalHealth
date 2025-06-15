@@ -1,4 +1,4 @@
-package com.miempresa.totalhealth.common.composables // O la ubicación que hayas elegido
+package com.miempresa.totalhealth.common.composables
 
 import androidx.compose.foundation.layout.Column // Importación añadida para Column
 import androidx.compose.foundation.layout.Row
@@ -18,8 +18,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import kotlin.math.ceil // Asegurarse que se usa o quitar si no.
-import kotlin.math.floor // Asegurarse que se usa o quitar si no.
+import kotlin.math.ceil
+import kotlin.math.floor
 
 @Composable
 fun StarRatingDisplay(

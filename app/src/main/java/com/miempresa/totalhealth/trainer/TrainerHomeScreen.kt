@@ -114,6 +114,12 @@ fun TrainerHomeScreen(
     val userListUiState by trainerViewModel.userListUiState.collectAsState()
     val dashboardMetricsState by trainerViewModel.dashboardMetricsUiState.collectAsState()
 
+    // Iniciar sesión automáticamente como entrenador si no está autenticado
+    LaunchedEffect(Unit) {
+        if (authViewModel.getCurrentUser() == null) {
+            // authViewModel.loginUser() // Descomenta si deseas login automático sin argumentos
+        }
+    }
     // Forzar recarga cada vez que se entra a la pantalla
     LaunchedEffect(Unit) {
         trainerViewModel.fetchAllUsers()
@@ -335,9 +341,9 @@ fun TrainerHomeScreen(
 fun SectionTitle(title: String) {
     Text(
         text = title,
-        fontSize = 22.sp, // Ligeramente más pequeño que el saludo, pero prominente
+        fontSize = 22.sp, // Ligeramente más pequeño que el saludo
         fontWeight = FontWeight.Bold,
-        color = GoldColor, // O Color.White si prefieres variar
+        color = GoldColor, // O Color.White
         modifier = Modifier.padding(bottom = 12.dp)
     )
 }
@@ -415,8 +421,8 @@ fun ErrorStateDisplay(message: String) {
 
 
 @Composable
-fun HorizontalCalendar( // Este Composable parece estar definido en otro archivo (TrainerAppointmentsCalendarSection), lo incluyo aquí para completitud si fuera local.
-    startDate: LocalDate,             // Si está en TrainerAppointmentsCalendarSection, esta copia local puede ser eliminada o ajustada.
+fun HorizontalCalendar(
+    startDate: LocalDate,
     endDate: LocalDate,
     selectedDate: LocalDate,
     onDateSelected: (LocalDate) -> Unit,

@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.miempresa.totalhealth.R // Asegúrate que esta R sea la correcta
+import com.miempresa.totalhealth.R //
 
 @Composable
 fun RegisterScreen(
@@ -65,7 +65,7 @@ fun RegisterScreen(
                 }
 
                 authViewModel.clearFields()
-                authViewModel.resetState() // CRUCIAL: Reset state to Idle BEFORE navigating to login
+                authViewModel.resetState() // Resetea estado
                 Log.d("RegisterScreen", "State reset to Idle. Navigating to login screen.")
 
                 navController.navigate("login") {
@@ -95,7 +95,6 @@ fun RegisterScreen(
         }
     }
 
-    // El resto de la UI de RegisterScreen se mantiene igual...
     Column(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
